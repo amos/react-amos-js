@@ -7,7 +7,7 @@ It is a thin wrapper around [`@amos.com/amos-js`](../amos-js) that adapts the fr
 ## Installation
 
 ```bash
-npm install github:amos/react-amos-js
+npm install @amos.com/react-amos-js
 ```
 
 ## What it gives you
