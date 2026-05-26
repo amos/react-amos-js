@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.2.0
+
+### Minor Changes
+
+- a55cdf0: Add css variables for appearance API
+
 ## 0.1.2
 
 ### Patch Changes
