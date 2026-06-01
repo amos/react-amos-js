@@ -80,7 +80,7 @@ In short, your app orchestrates the payment flow, while sensitive payment data s
 
 ## Appearance
 
-Every component accepts an optional `appearance` prop that controls the look of the iframe UI. It contains a `themeVariables` object whose keys are CSS custom-property names and whose values are strings. You can update this prop after page load to update the iframe appearance.
+Every component accepts an optional `appearance` prop that controls the look of the iframe UI. It contains a `themeVariables` object whose keys are CSS custom-property names and whose values are strings, and an optional `labels` setting (`"above"`, `"floating"`, or `"placeholder"`) for field label placement. You can update this prop after page load to update the iframe appearance.
 
 ```tsx
 <AmosCreditCardPaymentMethodForm

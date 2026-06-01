@@ -21,6 +21,7 @@ import {
 
 export type {
   Appearance,
+  AppearanceLabels,
   CreateCustomerInput,
   CreatePaymentIntentInput,
   CreateSetupIntentInput,
