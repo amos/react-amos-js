@@ -95,7 +95,7 @@ Every component accepts an optional `appearance` prop that controls the look of 
 />
 ```
 
-Only the variables you provide are sent; omitted variables keep their defaults.
+`themeVariables` uses a **replace** model: each update that includes `themeVariables` sets the full override set. Only the variables you list are overridden; unlisted variables revert to iframe defaults. Omit `themeVariables` to leave existing overrides unchanged.
 
 ### Available theme variables
 
