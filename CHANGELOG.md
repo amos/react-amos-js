@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.3.7
+
+### Patch Changes
+
+- Bump @amos.com/node and @amos.com/amos-js dependencies.
+
 ## 0.3.6
 
 ### Patch Changes
