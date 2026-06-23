@@ -4,8 +4,9 @@ import dts from "vite-plugin-dts";
 export default defineConfig({
   plugins: [
     dts({
-      insertTypesEntry: true,
-      outDir: "dist",
+      outDirs: "dist",
+      entryRoot: "src",
+      compilerOptions: { rootDir: "src" },
       beforeWriteFile: (filePath, content) => {
         const normalized = filePath.replaceAll("\\", "/");
 
@@ -14,8 +15,7 @@ export default defineConfig({
         // they import `@amos.com/react-amos-js`.
         if (normalized.endsWith("/dist/index.d.ts")) {
           return {
-            content:
-              '/// <reference types="googlepay" />\nexport * from "./src/index";\n',
+            content: `/// <reference types="googlepay" />\n${content}`,
           };
         }
 
