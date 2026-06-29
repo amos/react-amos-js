@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.3.15
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js and clean up types
+
 ## 0.3.14
 
 ### Patch Changes
