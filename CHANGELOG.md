@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.3.16
+
+### Patch Changes
+
+- Update README and package-lock.json
+
 ## 0.3.15
 
 ### Patch Changes

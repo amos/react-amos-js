@@ -14,7 +14,7 @@ npm install @amos.com/react-amos-js
 
 - React components for the iframe payment method forms: `AmosCreditCardPaymentMethodForm`, `AmosBankAccountPaymentMethodForm`, `AmosGooglePayButton`.
 - React-flavoured iframe message helpers that accept a React `ref`: `validateForm({ iframeRef })`, `confirmPaymentIntent({ iframeRef, token })`, `confirmSetupIntent({ iframeRef, token })`.
-- Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `formatGooglePayPaymentData`, `Appearance`, `Message`, `PaymentIntent`, `SetupIntent`, `EmbedToken`, etc.
+- Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `formatGooglePayPaymentData`, `FormattedGooglePayPaymentData`, `Appearance`, `Message`, etc.
 
 > **Note:** A server-side SDK (for example `@amos.com/node`) must be used alongside `@amos.com/react-amos-js` for end-to-end payment processing. `@amos.com/react-amos-js` is the client-side half.
 
@@ -129,7 +129,7 @@ import {
   confirmPaymentIntent,
   validateForm,
 } from "@amos.com/react-amos-js";
-import type { CreatePaymentIntentInput } from "@amos.com/react-amos-js";
+import type { components } from "@amos.com/node";
 
 function CheckoutForm() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -150,7 +150,7 @@ function CheckoutForm() {
         return;
       }
 
-      const paymentIntentCreateAttributes: CreatePaymentIntentInput = {
+      const paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"] = {
         amount: 5000, // $50.00 in cents
         capture_method: "automatic",
       };
@@ -409,7 +409,7 @@ Transforms Google Pay payment data into an Amos-compatible `paymentMethod` paylo
 
 - `paymentData` (`google.payments.api.PaymentData`, required)
 
-**Returns:** `{ paymentMethod: { ... } }`
+**Returns:** `FormattedGooglePayPaymentData` — the `paymentMethod` field is typed for embed confirm endpoints, so no extra type assertions are needed at call sites.
 
 ### `createMessage(message)` / `decodeJwt(token)` / `getEmbedOrigin(renderToken)`
 
@@ -417,17 +417,7 @@ Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most int
 
 ### Exported types
 
-`@amos.com/react-amos-js` re-exports the handful of OpenAPI-generated types it uses in its own component / callback signatures (and which you'll likely use in your call sites):
-
-- `CreateCustomerInput`
-- `CreatePaymentIntentInput`
-- `CreateSetupIntentInput`
-- `PaymentIntent`
-- `SetupIntent`
-- `EmbedToken`
-- `EmbedTokenJwt`
-- `RenderTokenJwt`
-- `Message`, `Appearance`, `ThemeVariable`, `CreditCardAdditionalFields`
+`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `FormattedGooglePayPaymentData`, `Message`, `Appearance`, `ThemeVariable`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`.
 
 ## Notes and potential gotchas
 
