@@ -1,6 +1,6 @@
 {
   "name": "@amos.com/react-amos-js",
-  "version": "0.3.16",
+  "version": "0.3.17",
   "main": "dist/index.js",
   "repository": {
     "type": "git",
@@ -44,8 +44,8 @@
     "vite-plugin-dts": "5.0.2"
   },
   "dependencies": {
-    "@amos.com/amos-js": "0.3.18",
-    "@amos.com/node": "0.1.22",
+    "@amos.com/amos-js": "0.3.19",
+    "@amos.com/node": "0.1.23",
     "@types/googlepay": "0.7.11"
   },
   "peerDependencies": {
