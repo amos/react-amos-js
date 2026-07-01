@@ -40,13 +40,13 @@ The following flow is for credit card and bank account payment method types only
 2. **Render your checkout UI** with one of the payment method components (e.g. `AmosCreditCardPaymentMethodForm`) along with the required props (`onConfirmationFailed`) and optional callbacks (`onPaymentIntentConfirmationSucceeded`, `onSetupIntentConfirmationSucceeded`). The iframe height is auto-managed by the SDK.
 3. **User clicks "Pay now" button**: call `validateForm({ iframeRef })`, which returns `Promise<true>` if the embedded form is valid and `Promise<false>` otherwise.
 4. **Create payment intent on your server**: use your server-side Amos client to call `POST /payment_intents`. You may also associate this payment intent with a new or existing customer via `POST /customers`. This must be server-side because it uses your private API key.
-5. **Return the payment intent token to the browser**: your backend responds with the `EmbedToken` needed for confirmation.
-6. **Confirm the payment intent from the client iframe**: call `confirmPaymentIntent({ iframeRef, token })` to continue the payment flow.
+5. **Return the payment intent token to the browser**: your backend responds with the embed token (`components["schemas"]["EmbedToken"]`) needed for confirmation.
+6. **Confirm the payment intent from the client**: call `confirmPaymentIntent({ iframeRef, token })` to continue the payment flow.
 7. **Handle UX**: show the user a "processing" state when the "Pay now" button is clicked, and show a success or error message via `onPaymentIntentConfirmationSucceeded` and `onConfirmationFailed`.
 
 ### Google Pay
 
-Google Pay (and soon, Apple Pay) is a form of express checkout. The Google Pay button is an alternative to the "Pay now" button in your payment forms. Users could make a payment with either flow.
+Google Pay (and soon, Apple Pay) is a form of express checkout. The Google Pay button is an alternative to the "Pay now" button in your payment forms. Users can make a payment with either flow.
 
 The key differences between the express and non-express payment flows are:
 
@@ -62,7 +62,7 @@ Setup intents are used to save payment methods for future use (e.g. recurring pa
 - On the client, call `confirmSetupIntent({ iframeRef, token })` instead of `confirmPaymentIntent({ iframeRef, token })`.
 - Use `onSetupIntentConfirmationSucceeded` instead of `onPaymentIntentConfirmationSucceeded`.
 
-The same `AmosCreditCardPaymentMethodForm` / `AmosBankAccountPaymentMethodForm` components support both payment intents and setup intents.
+The same `AmosCreditCardPaymentMethodForm` / `AmosBankAccountPaymentMethodForm` components support both payment intents and setup intents — they are differentiated by which confirmation function you call.
 
 ## Understanding PCI DSS compliance requirements
 
@@ -80,12 +80,13 @@ In short, your app orchestrates the payment flow, while sensitive payment data s
 
 ## Appearance
 
-Every component accepts an optional `appearance` prop that controls the look of the iframe UI. It contains a `themeVariables` object whose keys are CSS custom-property names and whose values are strings, and an optional `labels` setting (`"above"`, `"floating"`, or `"placeholder"`) for field label placement. You can update this prop after page load to update the iframe appearance.
+Every component accepts an optional `appearance` prop that controls the look of the iframe UI. It contains a `themeVariables` object whose keys are CSS custom-property names and whose values are strings, and an optional `labels` setting for field label placement. You can update this prop after page load to update the iframe appearance.
 
 ```tsx
 <AmosCreditCardPaymentMethodForm
   renderToken="..."
   appearance={{
+    labels: "floating",
     themeVariables: {
       "--primary": "oklch(0.5 0.2 240)",
       "--radius": "0.25rem",
@@ -96,6 +97,18 @@ Every component accepts an optional `appearance` prop that controls the look of 
 ```
 
 `themeVariables` uses a **replace** model: each update that includes `themeVariables` sets the full override set. Only the variables you list are overridden; unlisted variables revert to iframe defaults. Omit `themeVariables` to leave existing overrides unchanged.
+
+### Label placement
+
+Set `labels` to control how field labels are rendered in card and bank account forms:
+
+| Value | Behavior |
+| ----- | -------- |
+| `above` (default) | Label text above each input |
+| `floating` | Label inside the control; moves up when focused or filled |
+| `placeholder` | No visible label; placeholder and `aria-label` only |
+
+Radio groups (e.g. account type) always use an above-style group label regardless of this setting.
 
 ### Available theme variables
 
@@ -115,6 +128,7 @@ Every component accepts an optional `appearance` prop that controls the look of 
 | `--input`                | Input field border color                       | `oklch(0.922 0 0)`          |
 | `--input-background`     | Input field background fill                    | `var(--background)`         |
 | `--input-height`         | Height of text inputs and form controls        | `2.25rem`                   |
+| `--input-font-size`      | Font size of text inputs and dropdown fields   | `0.875rem`                  |
 | `--ring`                 | Focus ring and outline color                   | `oklch(0.708 0 0)`          |
 | `--radius`               | Base border-radius (derived into sm/md/lg/xl)  | `0.625rem`                  |
 
@@ -339,7 +353,7 @@ Confirms a payment intent in the embedded iframe flow.
 **Parameters:**
 
 - `iframeRef` (`React.RefObject<HTMLIFrameElement | null> | undefined`, required)
-- `token` (typed as `Pick<EmbedToken, "token">` — the embed JWT string returned by your server)
+- `token` (typed as `Pick<components["schemas"]["EmbedToken"], "token">` — the embed JWT string returned by your server)
 
 **Returns:** `void`
 
@@ -350,7 +364,7 @@ Confirms a setup intent in the embedded iframe flow. Use this when saving a paym
 **Parameters:**
 
 - `iframeRef` (`React.RefObject<HTMLIFrameElement | null> | undefined`, required)
-- `token` (same `Pick<EmbedToken, "token">` embed JWT string as for payment confirmation)
+- `token` (same `Pick<components["schemas"]["EmbedToken"], "token">` embed JWT string as for payment confirmation)
 
 **Returns:** `void`
 
@@ -365,9 +379,9 @@ Renders the secure credit card iframe form.
 
 **Optional props:**
 
-- `appearance` (`{ themeVariables?: Partial<Record<ThemeVariable, string>> }`) — appearance overrides for the iframe UI (see [Appearance](#appearance))
-- `onPaymentIntentConfirmationSucceeded` (`(paymentIntent: PaymentIntent) => void`)
-- `onSetupIntentConfirmationSucceeded` (`(setupIntent: SetupIntent) => void`)
+- `appearance` (`{ themeVariables?: Partial<Record<ThemeVariable, string>>; labels?: "above" | "floating" | "placeholder" }`) — appearance overrides for the iframe UI (see [Appearance](#appearance))
+- `onPaymentIntentConfirmationSucceeded` (`(paymentIntent: components["schemas"]["PaymentIntent"]) => void`)
+- `onSetupIntentConfirmationSucceeded` (`(setupIntent: components["schemas"]["SetupIntent"]) => void`)
 - `additionalFields` (`{ cardholderName: boolean }`) — set `additionalFields={{ cardholderName: true }}` to render the cardholder name field in the iframe (`false` by default)
 
 **Also accepts:** standard iframe props (`React.ComponentProps<"iframe">`), minus `src`, `title`, `name`, and `role` (which are controlled by the SDK).
@@ -391,13 +405,13 @@ Renders the secure Google Pay iframe button (express checkout flow).
 - `renderToken` (`string`)
 - `amount` (`string`)
 - `merchantName` (`string`)
-- `onInitiatePaymentIntentRequest` (callback receiving `{ paymentIntentCreateAttributes: CreatePaymentIntentInput; customerCreateAttributes: CreateCustomerInput }`, returns `Promise<EmbedToken["token"]>` — the embed JWT string for confirmation)
-- `onPaymentIntentConfirmationSucceeded` (`(paymentIntent: PaymentIntent) => void`)
+- `onInitiatePaymentIntentRequest` (callback receiving `{ paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"]; customerCreateAttributes: components["schemas"]["CreateCustomerInput"] }`, returns `Promise<components["schemas"]["EmbedToken"]["token"]>` — the embed JWT string for confirmation)
+- `onPaymentIntentConfirmationSucceeded` (`(paymentIntent: components["schemas"]["PaymentIntent"]) => void`)
 - `onConfirmationFailed` (`(errorMessage: string) => void`)
 
 **Optional props:**
 
-- `appearance` (`{ themeVariables?: Partial<Record<ThemeVariable, string>> }`)
+- `appearance` (`{ themeVariables?: Partial<Record<ThemeVariable, string>>; labels?: "above" | "floating" | "placeholder" }`)
 
 **Also accepts:** standard iframe props, minus the ones controlled by the SDK (`src`, `title`, `name`, `role`, `allow`).
 
@@ -423,7 +437,7 @@ Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most int
 
 - **`ref` / `iframeRef`**: for card and bank forms, pass `ref={iframeRef}` to the form component. The same `iframeRef` must be used when calling `validateForm`, `confirmPaymentIntent`, or `confirmSetupIntent`. The component forwards the ref to the inner iframe.
 - **Same components for payment vs setup intents**: `AmosCreditCardPaymentMethodForm` and `AmosBankAccountPaymentMethodForm` support both payment intents and setup intents. The flow differs only by which server call you make and which confirmation function you use (`confirmPaymentIntent` vs `confirmSetupIntent`). You may optionally provide `onPaymentIntentConfirmationSucceeded` and/or `onSetupIntentConfirmationSucceeded`; the appropriate one is invoked based on the flow.
-- **Amount format**: for `AmosGooglePayButton`, `amount` is a string (e.g. `"5000"` for $50.00). For `CreatePaymentIntentInput` on the server, `amount` is a number in cents (e.g. `5000`).
+- **Amount format**: for `AmosGooglePayButton`, `amount` is a string (e.g. `"5000"` for $50.00). For `components["schemas"]["CreatePaymentIntentInput"]` on the server, `amount` is a number in cents (e.g. `5000`).
 - **Going framework-free**: if you need to use Amos outside of React (vanilla JS, another framework, etc.), use [`@amos.com/amos-js`](../amos-js) directly.
 
 ---
