@@ -1,6 +1,6 @@
 {
   "name": "@amos.com/react-amos-js",
-  "version": "0.3.8",
+  "version": "0.3.19",
   "main": "dist/index.js",
   "repository": {
     "type": "git",
@@ -33,6 +33,7 @@
     "release": "npm run build && changeset publish"
   },
   "author": "Amos",
+  "license": "MIT",
   "description": "React SDK for embedding Amos payment methods via iframes. Wraps @amos.com/amos-js.",
   "devDependencies": {
     "@biomejs/biome": "2.5.1",
@@ -44,8 +45,8 @@
     "vite-plugin-dts": "5.0.2"
   },
   "dependencies": {
-    "@amos.com/amos-js": "0.3.11",
-    "@amos.com/node": "0.1.14",
+    "@amos.com/amos-js": "0.3.21",
+    "@amos.com/node": "0.1.26",
     "@types/googlepay": "0.7.11"
   },
   "peerDependencies": {

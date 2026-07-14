@@ -19,27 +19,7 @@ import {
   useRef,
 } from "react";
 
-export type {
-  Appearance,
-  AppearanceLabels,
-  CreateCustomerInput,
-  CreatePaymentIntentInput,
-  CreateSetupIntentInput,
-  CreditCardAdditionalFields,
-  EmbedToken,
-  EmbedTokenJwt,
-  Message,
-  PaymentIntent,
-  RenderTokenJwt,
-  SetupIntent,
-  ThemeVariable,
-} from "@amos.com/amos-js";
-export {
-  createMessage,
-  decodeJwt,
-  formatGooglePayPaymentData,
-  getEmbedOrigin,
-} from "@amos.com/amos-js";
+export * from "@amos.com/amos-js";
 
 type IframeRef = RefObject<HTMLIFrameElement | null> | undefined;
 
