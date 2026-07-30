@@ -5,6 +5,7 @@ import {
   confirmPaymentIntent as amosConfirmPaymentIntent,
   confirmSetupIntent as amosConfirmSetupIntent,
   validateForm as amosValidateForm,
+  type BillingAddressRequirement,
   type CreditCardAdditionalFields,
   mountAmosBankAccountPaymentMethodForm,
   mountAmosCreditCardPaymentMethodForm,
@@ -187,6 +188,7 @@ type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
   ) => void;
   onConfirmationFailed: (errorMessage: string) => void;
   additionalFields?: CreditCardAdditionalFields;
+  billingAddressRequirement?: BillingAddressRequirement;
 };
 
 export function AmosCreditCardPaymentMethodForm({
@@ -197,6 +199,7 @@ export function AmosCreditCardPaymentMethodForm({
   onSetupIntentConfirmationSucceeded,
   onConfirmationFailed,
   additionalFields = { cardholderName: false },
+  billingAddressRequirement = "postalCode",
   style,
   ...rest
 }: AmosCreditCardPaymentMethodFormProps) {
@@ -210,15 +213,21 @@ export function AmosCreditCardPaymentMethodForm({
       renderToken,
       appearance,
       additionalFields,
+      billingAddressRequirement,
       onPaymentIntentConfirmationSucceeded,
       onSetupIntentConfirmationSucceeded,
       onConfirmationFailed,
     },
-    remountDeps: [renderToken, additionalFields.cardholderName],
+    remountDeps: [
+      renderToken,
+      additionalFields.cardholderName,
+      billingAddressRequirement,
+    ],
     iframePassthrough: { style, ...rest },
     updateDeps: [
       appearance,
       additionalFields,
+      billingAddressRequirement,
       onPaymentIntentConfirmationSucceeded,
       onSetupIntentConfirmationSucceeded,
       onConfirmationFailed,
@@ -238,6 +247,7 @@ type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
     setupIntent: components["schemas"]["SetupIntent"],
   ) => void;
   onConfirmationFailed: (errorMessage: string) => void;
+  billingAddressRequirement?: BillingAddressRequirement;
 };
 
 export function AmosBankAccountPaymentMethodForm({
@@ -247,6 +257,7 @@ export function AmosBankAccountPaymentMethodForm({
   onPaymentIntentConfirmationSucceeded,
   onSetupIntentConfirmationSucceeded,
   onConfirmationFailed,
+  billingAddressRequirement = "postalCode",
   style,
   ...rest
 }: AmosBankAccountPaymentMethodFormProps) {
@@ -259,14 +270,16 @@ export function AmosBankAccountPaymentMethodForm({
     options: {
       renderToken,
       appearance,
+      billingAddressRequirement,
       onPaymentIntentConfirmationSucceeded,
       onSetupIntentConfirmationSucceeded,
       onConfirmationFailed,
     },
-    remountDeps: [renderToken],
+    remountDeps: [renderToken, billingAddressRequirement],
     iframePassthrough: { style, ...rest },
     updateDeps: [
       appearance,
+      billingAddressRequirement,
       onPaymentIntentConfirmationSucceeded,
       onSetupIntentConfirmationSucceeded,
       onConfirmationFailed,

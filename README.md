@@ -383,6 +383,7 @@ Renders the secure credit card iframe form.
 - `onPaymentIntentConfirmationSucceeded` (`(paymentIntent: components["schemas"]["PaymentIntent"]) => void`)
 - `onSetupIntentConfirmationSucceeded` (`(setupIntent: components["schemas"]["SetupIntent"]) => void`)
 - `additionalFields` (`{ cardholderName: boolean }`) — set `additionalFields={{ cardholderName: true }}` to render the cardholder name field in the iframe (`false` by default)
+- `billingAddressRequirement` (`"postalCode" | "postalCodeAndCountry" | "full"`, defaults to `"postalCode"`) — how much billing address the iframe collects. `postalCode` sends only postal code (no country). `full` shows a full street address form with Smarty autocomplete.
 
 **Also accepts:** standard iframe props (`React.ComponentProps<"iframe">`), minus `src`, `title`, `name`, and `role` (which are controlled by the SDK).
 
@@ -392,7 +393,7 @@ Renders the secure bank account iframe form.
 
 **Required props:** same as `AmosCreditCardPaymentMethodForm` — `renderToken`, `onConfirmationFailed`.
 
-**Optional props:** same as `AmosCreditCardPaymentMethodForm` — `appearance`, `onPaymentIntentConfirmationSucceeded`, `onSetupIntentConfirmationSucceeded`.
+**Optional props:** same as `AmosCreditCardPaymentMethodForm` — `appearance`, `billingAddressRequirement`, `onPaymentIntentConfirmationSucceeded`, `onSetupIntentConfirmationSucceeded`.
 
 **Also accepts:** standard iframe props.
 
