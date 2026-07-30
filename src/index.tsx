@@ -7,6 +7,7 @@ import {
   validateForm as amosValidateForm,
   type BillingAddressRequirement,
   type CreditCardAdditionalFields,
+  mountAmosApplePayButton,
   mountAmosBankAccountPaymentMethodForm,
   mountAmosCreditCardPaymentMethodForm,
   mountAmosGooglePayButton,
@@ -325,6 +326,66 @@ export function AmosGooglePayButton({
     containerRef,
     iframeRef: ref as ForwardedIframeRef,
     mount: mountAmosGooglePayButton,
+    options: {
+      renderToken,
+      amount,
+      merchantName,
+      appearance,
+      onInitiatePaymentIntentRequest,
+      onPaymentIntentConfirmationSucceeded,
+      onConfirmationFailed,
+    },
+    remountDeps: [renderToken],
+    iframePassthrough: { style, ...rest },
+    updateDeps: [
+      amount,
+      merchantName,
+      appearance,
+      onInitiatePaymentIntentRequest,
+      onPaymentIntentConfirmationSucceeded,
+      onConfirmationFailed,
+    ],
+  });
+
+  return <div ref={containerRef} />;
+}
+
+type AmosApplePayButtonProps = IframePassthroughProps & {
+  renderToken: string;
+  amount: string;
+  merchantName: string;
+  appearance?: Appearance;
+  onInitiatePaymentIntentRequest: ({
+    paymentIntentCreateAttributes,
+    customerCreateAttributes,
+  }: {
+    paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
+    customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
+  }) => Promise<components["schemas"]["EmbedToken"]["token"]>;
+  onPaymentIntentConfirmationSucceeded: (
+    paymentIntent: components["schemas"]["PaymentIntent"],
+  ) => void;
+  onConfirmationFailed: (errorMessage: string) => void;
+};
+
+export function AmosApplePayButton({
+  ref,
+  renderToken,
+  amount,
+  merchantName,
+  appearance,
+  onInitiatePaymentIntentRequest,
+  onPaymentIntentConfirmationSucceeded,
+  onConfirmationFailed,
+  style,
+  ...rest
+}: AmosApplePayButtonProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useAmosEmbed({
+    containerRef,
+    iframeRef: ref as ForwardedIframeRef,
+    mount: mountAmosApplePayButton,
     options: {
       renderToken,
       amount,

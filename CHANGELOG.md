@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.5.0
+
+### Minor Changes
+
+- Add AmosApplePayButton for Apple Pay express checkout
+
 ## 0.4.1
 
 ### Patch Changes

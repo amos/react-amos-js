@@ -12,7 +12,7 @@ npm install @amos.com/react-amos-js
 
 ## What it gives you
 
-- React components for the iframe payment method forms: `AmosCreditCardPaymentMethodForm`, `AmosBankAccountPaymentMethodForm`, `AmosGooglePayButton`.
+- React components for the iframe payment method forms: `AmosCreditCardPaymentMethodForm`, `AmosBankAccountPaymentMethodForm`, `AmosGooglePayButton`, `AmosApplePayButton`.
 - React-flavoured iframe message helpers that accept a React `ref`: `validateForm({ iframeRef })`, `confirmPaymentIntent({ iframeRef, token })`, `confirmSetupIntent({ iframeRef, token })`.
 - Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `formatGooglePayPaymentData`, `FormattedGooglePayPaymentData`, `Appearance`, `Message`, etc.
 
@@ -46,7 +46,7 @@ The following flow is for credit card and bank account payment method types only
 
 ### Google Pay
 
-Google Pay (and soon, Apple Pay) is a form of express checkout. The Google Pay button is an alternative to the "Pay now" button in your payment forms. Users can make a payment with either flow.
+Google Pay and Apple Pay are forms of express checkout. Their buttons are alternatives to the "Pay now" button in your payment forms. Users can make a payment with either flow.
 
 The key differences between the express and non-express payment flows are:
 
@@ -415,6 +415,10 @@ Renders the secure Google Pay iframe button (express checkout flow).
 - `appearance` (`{ themeVariables?: Partial<Record<ThemeVariable, string>>; labels?: "above" | "floating" | "placeholder" }`)
 
 **Also accepts:** standard iframe props, minus the ones controlled by the SDK (`src`, `title`, `name`, `role`, `allow`).
+
+### `AmosApplePayButton`
+
+Renders the secure Apple Pay iframe button (express checkout flow). Same props and callbacks as `AmosGooglePayButton`.
 
 ### `formatGooglePayPaymentData({ paymentData })`
 
