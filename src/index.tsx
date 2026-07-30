@@ -199,7 +199,7 @@ export function AmosCreditCardPaymentMethodForm({
   onSetupIntentConfirmationSucceeded,
   onConfirmationFailed,
   additionalFields = { cardholderName: false },
-  billingAddressRequirement = "postalCode",
+  billingAddressRequirement = "country",
   style,
   ...rest
 }: AmosCreditCardPaymentMethodFormProps) {
@@ -257,7 +257,7 @@ export function AmosBankAccountPaymentMethodForm({
   onPaymentIntentConfirmationSucceeded,
   onSetupIntentConfirmationSucceeded,
   onConfirmationFailed,
-  billingAddressRequirement = "postalCode",
+  billingAddressRequirement = "country",
   style,
   ...rest
 }: AmosBankAccountPaymentMethodFormProps) {
