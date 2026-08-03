@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.6.1
+
+### Patch Changes
+
+- Update @amos.com/amos-js for Apple Pay native `ApplePaySession` detection (`UPDATE_NATIVE_APPLE_PAY_SESSION` / `hasNativeApplePaySession`). Expand/collapse for Chrome QR handoff still handled automatically by `AmosApplePayButton`.
+
 ## 0.6.0
 
 ### Minor Changes
