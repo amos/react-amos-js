@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.6.0
+
+### Minor Changes
+
+- Re-export @amos.com/amos-js Apple Pay EXPAND_IFRAME / COLLAPSE_IFRAME message types so embed can request a full-viewport iframe overlay while keeping the session on Amos domains.
+
 ## 0.5.0
 
 ### Minor Changes
