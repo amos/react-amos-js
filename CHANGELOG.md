@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.9.0
+
+### Minor Changes
+
+- Replace confirmation success/failure props with a single `onResult` callback (see `@amos.com/amos-js`).
+
 ## 0.7.2
 
 ### Patch Changes
