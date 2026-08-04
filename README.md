@@ -262,7 +262,7 @@ function CheckoutGooglePay() {
 }
 ```
 
-`AmosApplePayButton` uses the same props and express-checkout callbacks. Drop it in the same place (or alongside Google Pay) with the same `amount`, `merchantName`, and `onInitiatePaymentIntentRequest` wiring.
+`AmosApplePayButton` uses the same props and express-checkout callbacks. Drop it in the same place (or alongside Google Pay) with the same `amount`, `merchantName`, and `onInitiatePaymentIntentRequest` wiring. On Safari, the native payment sheet is used; on other browsers, Apple's QR handoff opens in a popup (`pay.apple.com`). While that popup is open, the SDK shows a waiting overlay on your page with a **Cancel payment** button.
 
 ### Saving a payment method with setup intent (credit card)
 
@@ -422,7 +422,7 @@ Renders the secure Google Pay iframe button (express checkout flow).
 
 Renders the secure Apple Pay iframe button (express checkout flow). Same props and callbacks as `AmosGooglePayButton`.
 
-Only Amos domains need Apple merchant registration. The button and `ApplePaySession` run inside the Amos embed iframe.
+Only Amos domains need Apple merchant registration. The button and `ApplePaySession` run inside the Amos embed iframe. On Safari, the native payment sheet is used. On other browsers, Apple's QR handoff opens in a popup (`pay.apple.com`); while that popup is open, the SDK automatically shows a full-viewport waiting overlay on the host page with instructions and a **Cancel payment** button. You do not need to implement popup or overlay handling yourself.
 
 ### `formatGooglePayPaymentData({ paymentData })`
 
@@ -447,6 +447,7 @@ Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most int
 - **`ref` / `iframeRef`**: for card and bank forms, pass `ref={iframeRef}` to the form component. The same `iframeRef` must be used when calling `validateForm`, `confirmPaymentIntent`, or `confirmSetupIntent`. The component forwards the ref to the inner iframe.
 - **Same components for payment vs setup intents**: `AmosCreditCardPaymentMethodForm` and `AmosBankAccountPaymentMethodForm` support both payment intents and setup intents. The flow differs only by which server call you make and which confirmation function you use (`confirmPaymentIntent` vs `confirmSetupIntent`). You may optionally provide `onPaymentIntentConfirmationSucceeded` and/or `onSetupIntentConfirmationSucceeded`; the appropriate one is invoked based on the flow.
 - **Amount format**: for `AmosGooglePayButton` and `AmosApplePayButton`, `amount` is a string (e.g. `"5000"` for $50.00). For `components["schemas"]["CreatePaymentIntentInput"]` on the server, `amount` is a number in cents (e.g. `5000`).
+- **Apple Pay waiting overlay**: on browsers where Apple's QR handoff opens in a popup (non-Safari), `AmosApplePayButton` shows a fixed full-viewport overlay on the host page until payment completes, the popup closes, or the user clicks **Cancel payment**. Avoid stacking other fixed UI above it.
 - **Going framework-free**: if you need to use Amos outside of React (vanilla JS, another framework, etc.), use [`@amos.com/amos-js`](../amos-js) directly.
 
 ---
