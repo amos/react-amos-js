@@ -1,5 +1,17 @@
 # @amos.com/react-amos-js
 
+## 0.7.0
+
+### Minor Changes
+
+- Drop Apple Pay expand/collapse docs and `hasNativeApplePaySession` re-export; QR handoff opens in a popup from the embed.
+
+## Unreleased
+
+### Minor Changes
+
+- Drop Apple Pay iframe expand/collapse docs and `hasNativeApplePaySession` re-export. QR handoff now opens in a popup from the embed (`ApplePayWebOptions.renderApplePayCodeAs: "window"`).
+
 ## 0.6.1
 
 ### Patch Changes

@@ -14,7 +14,7 @@ npm install @amos.com/react-amos-js
 
 - React components for the iframe payment method forms: `AmosCreditCardPaymentMethodForm`, `AmosBankAccountPaymentMethodForm`, `AmosGooglePayButton`, `AmosApplePayButton`.
 - React-flavoured iframe message helpers that accept a React `ref`: `validateForm({ iframeRef })`, `confirmPaymentIntent({ iframeRef, token })`, `confirmSetupIntent({ iframeRef, token })`.
-- Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `hasNativeApplePaySession`, `formatGooglePayPaymentData`, `FormattedGooglePayPaymentData`, `Appearance`, `Message`, etc.
+- Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `formatGooglePayPaymentData`, `FormattedGooglePayPaymentData`, `Appearance`, `Message`, etc.
 
 > **Note:** A server-side SDK (for example `@amos.com/node`) must be used alongside `@amos.com/react-amos-js` for end-to-end payment processing. `@amos.com/react-amos-js` is the client-side half.
 
@@ -262,7 +262,7 @@ function CheckoutGooglePay() {
 }
 ```
 
-`AmosApplePayButton` uses the same props and express-checkout callbacks. Drop it in the same place (or alongside Google Pay) with the same `amount`, `merchantName`, and `onInitiatePaymentIntentRequest` wiring. On mount, the SDK tells the iframe whether the host has a native `ApplePaySession` (Safari); when it does not, the SDK may temporarily expand the iframe full-viewport for Chrome's QR handoff UI.
+`AmosApplePayButton` uses the same props and express-checkout callbacks. Drop it in the same place (or alongside Google Pay) with the same `amount`, `merchantName`, and `onInitiatePaymentIntentRequest` wiring. On non-Safari browsers, Apple's QR handoff opens in a popup (`pay.apple.com`); Safari uses the native payment sheet.
 
 ### Saving a payment method with setup intent (credit card)
 
@@ -422,7 +422,7 @@ Renders the secure Google Pay iframe button (express checkout flow).
 
 Renders the secure Apple Pay iframe button (express checkout flow). Same props and callbacks as `AmosGooglePayButton`.
 
-Only Amos domains need Apple merchant registration. During the `IFRAME_READY` handshake, the SDK sends `UPDATE_NATIVE_APPLE_PAY_SESSION` with `hasNativeApplePaySession` (whether the host page exposes a native `ApplePaySession`, typically Safari). When that is `false`, non-Safari browsers load Apple's SDK inside the embed iframe and may send `EXPAND_IFRAME` so Chrome's in-iframe QR handoff UI is not clipped; `COLLAPSE_IFRAME` restores the button-sized layout. Merchants do not need to call `hasNativeApplePaySession` / `updateNativeApplePaySession` or handle expand/collapse themselves — `AmosApplePayButton` does this automatically via the re-exported `@amos.com/amos-js` protocol.
+Only Amos domains need Apple merchant registration. The button and `ApplePaySession` run inside the Amos embed iframe. On Safari, the native payment sheet is used; on other browsers, Apple's QR handoff opens in a popup (`pay.apple.com`).
 
 ### `formatGooglePayPaymentData({ paymentData })`
 
@@ -434,9 +434,9 @@ Transforms Google Pay payment data into an Amos-compatible `paymentMethod` paylo
 
 **Returns:** `FormattedGooglePayPaymentData` — the `paymentMethod` field is typed for embed confirm endpoints, so no extra type assertions are needed at call sites.
 
-### `createMessage(message)` / `decodeJwt(token)` / `getEmbedOrigin(renderToken)` / `hasNativeApplePaySession()`
+### `createMessage(message)` / `decodeJwt(token)` / `getEmbedOrigin(renderToken)`
 
-Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most integrators do not need to call these directly. `hasNativeApplePaySession` reports whether the host page has a native `ApplePaySession` (Safari); `AmosApplePayButton` already uses it during the iframe handshake.
+Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most integrators do not need to call these directly.
 
 ### Exported types
 
@@ -447,7 +447,6 @@ Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most int
 - **`ref` / `iframeRef`**: for card and bank forms, pass `ref={iframeRef}` to the form component. The same `iframeRef` must be used when calling `validateForm`, `confirmPaymentIntent`, or `confirmSetupIntent`. The component forwards the ref to the inner iframe.
 - **Same components for payment vs setup intents**: `AmosCreditCardPaymentMethodForm` and `AmosBankAccountPaymentMethodForm` support both payment intents and setup intents. The flow differs only by which server call you make and which confirmation function you use (`confirmPaymentIntent` vs `confirmSetupIntent`). You may optionally provide `onPaymentIntentConfirmationSucceeded` and/or `onSetupIntentConfirmationSucceeded`; the appropriate one is invoked based on the flow.
 - **Amount format**: for `AmosGooglePayButton` and `AmosApplePayButton`, `amount` is a string (e.g. `"5000"` for $50.00). For `components["schemas"]["CreatePaymentIntentInput"]` on the server, `amount` is a number in cents (e.g. `5000`).
-- **Apple Pay iframe overlay**: on browsers without a native `ApplePaySession` (e.g. Chrome), the SDK may expand the Apple Pay iframe to a full-viewport overlay for QR handoff. Do not clip the iframe in an overflow-hidden container that would prevent that expand, and avoid competing fixed overlays at a higher z-index. During expand, the SDK sets the iframe to `position: fixed` covering the viewport and hides `document.body` overflow.
 - **Going framework-free**: if you need to use Amos outside of React (vanilla JS, another framework, etc.), use [`@amos.com/amos-js`](../amos-js) directly.
 
 ---
