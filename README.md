@@ -262,7 +262,7 @@ function CheckoutGooglePay() {
 }
 ```
 
-`AmosApplePayButton` uses the same props and express-checkout callbacks. Drop it in the same place (or alongside Google Pay) with the same `amount`, `merchantName`, and `onInitiatePaymentIntentRequest` wiring. On non-Safari browsers, Apple's QR handoff opens in a popup (`pay.apple.com`); Safari uses the native payment sheet.
+`AmosApplePayButton` uses the same props and express-checkout callbacks. Drop it in the same place (or alongside Google Pay) with the same `amount`, `merchantName`, and `onInitiatePaymentIntentRequest` wiring.
 
 ### Saving a payment method with setup intent (credit card)
 
@@ -422,7 +422,7 @@ Renders the secure Google Pay iframe button (express checkout flow).
 
 Renders the secure Apple Pay iframe button (express checkout flow). Same props and callbacks as `AmosGooglePayButton`.
 
-Only Amos domains need Apple merchant registration. The button and `ApplePaySession` run inside the Amos embed iframe. On Safari, the native payment sheet is used; on other browsers, Apple's QR handoff opens in a popup (`pay.apple.com`).
+Only Amos domains need Apple merchant registration. The button and `ApplePaySession` run inside the Amos embed iframe.
 
 ### `formatGooglePayPaymentData({ paymentData })`
 
