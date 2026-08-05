@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.9.5
+
+### Patch Changes
+
+- Fix SVG
+
 ## 0.9.4
 
 ### Patch Changes
