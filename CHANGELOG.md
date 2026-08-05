@@ -1,5 +1,17 @@
 # @amos.com/react-amos-js
 
+## 0.9.3
+
+### Patch Changes
+
+- Refactor confirm flow
+
+## 0.9.2
+
+### Patch Changes
+
+- Update @amos.com/amos-js for `incomplete.reason` and listener hardening.
+
 ## 0.9.1
 
 ### Patch Changes
