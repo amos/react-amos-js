@@ -1,5 +1,180 @@
 # @amos.com/react-amos-js
 
+## 0.9.6
+
+### Patch Changes
+
+- Add resetForm API
+- Update @amos.com/amos-js to 0.9.6. Move @amos.com/node to peer dependency. Add `resetForm` React wrapper.
+
+## 0.9.5
+
+### Patch Changes
+
+- Fix SVG
+
+## 0.9.4
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js
+
+## 0.9.3
+
+### Patch Changes
+
+- Refactor confirm flow
+
+## 0.9.2
+
+### Patch Changes
+
+- Update @amos.com/amos-js for `incomplete.reason` and listener hardening.
+
+## 0.9.1
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js
+
+## 0.9.0
+
+### Minor Changes
+
+- Replace confirmation success/failure props with a single `onResult` callback (see `@amos.com/amos-js`).
+
+## 0.7.2
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js
+
+## 0.7.1
+
+### Patch Changes
+
+- Show Apple Pay overlay
+
+## 0.7.0
+
+### Minor Changes
+
+- Drop Apple Pay iframe expand/collapse docs and `hasNativeApplePaySession` re-export. QR handoff opens in a popup from the embed.
+
+## 0.6.1
+
+### Patch Changes
+
+- Update @amos.com/amos-js for Apple Pay native `ApplePaySession` detection (`UPDATE_NATIVE_APPLE_PAY_SESSION` / `hasNativeApplePaySession`). Expand/collapse for Chrome QR handoff still handled automatically by `AmosApplePayButton`.
+
+## 0.6.0
+
+### Minor Changes
+
+- Re-export @amos.com/amos-js Apple Pay EXPAND_IFRAME / COLLAPSE_IFRAME message types so embed can request a full-viewport iframe overlay while keeping the session on Amos domains.
+
+## 0.5.0
+
+### Minor Changes
+
+- Add AmosApplePayButton for Apple Pay express checkout
+
+## 0.4.1
+
+### Patch Changes
+
+- Restrict `billingAddressRequirement` to `"country" | "full"` (removed `"postalCode"` and `"postalCodeAndCountry"`). Default is now `"country"`. Postal / ZIP is collected only for Canada, Puerto Rico, the United Kingdom, and the United States (labeled ZIP for US).
+
+## 0.4.0
+
+### Minor Changes
+
+- Support billingAddressRequirement option
+
+## 0.3.22
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js
+
+## 0.3.21
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js
+
+## 0.3.20
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js
+
+## 0.3.19
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js
+
+## 0.3.18
+
+### Patch Changes
+
+- Update README
+
+## 0.3.17
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js
+
+## 0.3.16
+
+### Patch Changes
+
+- Update README and package-lock.json
+
+## 0.3.15
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js and clean up types
+
+## 0.3.14
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js
+
+## 0.3.13
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js
+
+## 0.3.12
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js
+
+## 0.3.11
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js
+
+## 0.3.10
+
+### Patch Changes
+
+- Update @amos.com/node and @amos.com/amos-js
+
+## 0.3.9
+
+### Patch Changes
+
+- Bump @amos.com/node and @amos.com/amos-js dependencies.
+
 ## 0.3.8
 
 ### Patch Changes

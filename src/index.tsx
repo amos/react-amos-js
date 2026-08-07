@@ -4,8 +4,12 @@ import {
   type Appearance,
   confirmPaymentIntent as amosConfirmPaymentIntent,
   confirmSetupIntent as amosConfirmSetupIntent,
+  resetForm as amosResetForm,
   validateForm as amosValidateForm,
+  type BillingAddressRequirement,
+  type ConfirmationResult,
   type CreditCardAdditionalFields,
+  mountAmosApplePayButton,
   mountAmosBankAccountPaymentMethodForm,
   mountAmosCreditCardPaymentMethodForm,
   mountAmosGooglePayButton,
@@ -19,27 +23,7 @@ import {
   useRef,
 } from "react";
 
-export type {
-  Appearance,
-  AppearanceLabels,
-  CreateCustomerInput,
-  CreatePaymentIntentInput,
-  CreateSetupIntentInput,
-  CreditCardAdditionalFields,
-  EmbedToken,
-  EmbedTokenJwt,
-  Message,
-  PaymentIntent,
-  RenderTokenJwt,
-  SetupIntent,
-  ThemeVariable,
-} from "@amos.com/amos-js";
-export {
-  createMessage,
-  decodeJwt,
-  formatGooglePayPaymentData,
-  getEmbedOrigin,
-} from "@amos.com/amos-js";
+export * from "@amos.com/amos-js";
 
 type IframeRef = RefObject<HTMLIFrameElement | null> | undefined;
 
@@ -94,6 +78,14 @@ export function confirmSetupIntent({
   iframeRef: IframeRef;
 } & Pick<components["schemas"]["EmbedToken"], "token">): void {
   amosConfirmSetupIntent({ iframe: resolveIframe(iframeRef), token });
+}
+
+/**
+ * Clear all field values and API errors in the embedded card/bank iframe
+ * form. Call after `onResult` when the customer wants to try again.
+ */
+export function resetForm({ iframeRef }: { iframeRef: IframeRef }): void {
+  amosResetForm({ iframe: resolveIframe(iframeRef) });
 }
 
 type ForwardedIframeRef = Ref<HTMLIFrameElement> | undefined;
@@ -199,24 +191,18 @@ function useAmosEmbed<TOptions extends Record<string, unknown>>({
 type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
   renderToken: string;
   appearance?: Appearance;
-  onPaymentIntentConfirmationSucceeded?: (
-    paymentIntent: components["schemas"]["PaymentIntent"],
-  ) => void;
-  onSetupIntentConfirmationSucceeded?: (
-    setupIntent: components["schemas"]["SetupIntent"],
-  ) => void;
-  onConfirmationFailed: (errorMessage: string) => void;
+  onResult: (result: ConfirmationResult) => void;
   additionalFields?: CreditCardAdditionalFields;
+  billingAddressRequirement?: BillingAddressRequirement;
 };
 
 export function AmosCreditCardPaymentMethodForm({
   ref,
   renderToken,
   appearance,
-  onPaymentIntentConfirmationSucceeded,
-  onSetupIntentConfirmationSucceeded,
-  onConfirmationFailed,
+  onResult,
   additionalFields = { cardholderName: false },
+  billingAddressRequirement = "country",
   style,
   ...rest
 }: AmosCreditCardPaymentMethodFormProps) {
@@ -230,18 +216,20 @@ export function AmosCreditCardPaymentMethodForm({
       renderToken,
       appearance,
       additionalFields,
-      onPaymentIntentConfirmationSucceeded,
-      onSetupIntentConfirmationSucceeded,
-      onConfirmationFailed,
+      billingAddressRequirement,
+      onResult,
     },
-    remountDeps: [renderToken, additionalFields.cardholderName],
+    remountDeps: [
+      renderToken,
+      additionalFields.cardholderName,
+      billingAddressRequirement,
+    ],
     iframePassthrough: { style, ...rest },
     updateDeps: [
       appearance,
       additionalFields,
-      onPaymentIntentConfirmationSucceeded,
-      onSetupIntentConfirmationSucceeded,
-      onConfirmationFailed,
+      billingAddressRequirement,
+      onResult,
     ],
   });
 
@@ -251,22 +239,16 @@ export function AmosCreditCardPaymentMethodForm({
 type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
   renderToken: string;
   appearance?: Appearance;
-  onPaymentIntentConfirmationSucceeded?: (
-    paymentIntent: components["schemas"]["PaymentIntent"],
-  ) => void;
-  onSetupIntentConfirmationSucceeded?: (
-    setupIntent: components["schemas"]["SetupIntent"],
-  ) => void;
-  onConfirmationFailed: (errorMessage: string) => void;
+  onResult: (result: ConfirmationResult) => void;
+  billingAddressRequirement?: BillingAddressRequirement;
 };
 
 export function AmosBankAccountPaymentMethodForm({
   ref,
   renderToken,
   appearance,
-  onPaymentIntentConfirmationSucceeded,
-  onSetupIntentConfirmationSucceeded,
-  onConfirmationFailed,
+  onResult,
+  billingAddressRequirement = "country",
   style,
   ...rest
 }: AmosBankAccountPaymentMethodFormProps) {
@@ -279,18 +261,12 @@ export function AmosBankAccountPaymentMethodForm({
     options: {
       renderToken,
       appearance,
-      onPaymentIntentConfirmationSucceeded,
-      onSetupIntentConfirmationSucceeded,
-      onConfirmationFailed,
+      billingAddressRequirement,
+      onResult,
     },
-    remountDeps: [renderToken],
+    remountDeps: [renderToken, billingAddressRequirement],
     iframePassthrough: { style, ...rest },
-    updateDeps: [
-      appearance,
-      onPaymentIntentConfirmationSucceeded,
-      onSetupIntentConfirmationSucceeded,
-      onConfirmationFailed,
-    ],
+    updateDeps: [appearance, billingAddressRequirement, onResult],
   });
 
   return <div ref={containerRef} />;
@@ -308,10 +284,7 @@ type AmosGooglePayButtonProps = IframePassthroughProps & {
     paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
     customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
   }) => Promise<components["schemas"]["EmbedToken"]["token"]>;
-  onPaymentIntentConfirmationSucceeded: (
-    paymentIntent: components["schemas"]["PaymentIntent"],
-  ) => void;
-  onConfirmationFailed: (errorMessage: string) => void;
+  onResult: (result: ConfirmationResult) => void;
 };
 
 export function AmosGooglePayButton({
@@ -321,8 +294,7 @@ export function AmosGooglePayButton({
   merchantName,
   appearance,
   onInitiatePaymentIntentRequest,
-  onPaymentIntentConfirmationSucceeded,
-  onConfirmationFailed,
+  onResult,
   style,
   ...rest
 }: AmosGooglePayButtonProps) {
@@ -338,8 +310,7 @@ export function AmosGooglePayButton({
       merchantName,
       appearance,
       onInitiatePaymentIntentRequest,
-      onPaymentIntentConfirmationSucceeded,
-      onConfirmationFailed,
+      onResult,
     },
     remountDeps: [renderToken],
     iframePassthrough: { style, ...rest },
@@ -348,8 +319,61 @@ export function AmosGooglePayButton({
       merchantName,
       appearance,
       onInitiatePaymentIntentRequest,
-      onPaymentIntentConfirmationSucceeded,
-      onConfirmationFailed,
+      onResult,
+    ],
+  });
+
+  return <div ref={containerRef} />;
+}
+
+type AmosApplePayButtonProps = IframePassthroughProps & {
+  renderToken: string;
+  amount: string;
+  merchantName: string;
+  appearance?: Appearance;
+  onInitiatePaymentIntentRequest: ({
+    paymentIntentCreateAttributes,
+    customerCreateAttributes,
+  }: {
+    paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
+    customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
+  }) => Promise<components["schemas"]["EmbedToken"]["token"]>;
+  onResult: (result: ConfirmationResult) => void;
+};
+
+export function AmosApplePayButton({
+  ref,
+  renderToken,
+  amount,
+  merchantName,
+  appearance,
+  onInitiatePaymentIntentRequest,
+  onResult,
+  style,
+  ...rest
+}: AmosApplePayButtonProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useAmosEmbed({
+    containerRef,
+    iframeRef: ref as ForwardedIframeRef,
+    mount: mountAmosApplePayButton,
+    options: {
+      renderToken,
+      amount,
+      merchantName,
+      appearance,
+      onInitiatePaymentIntentRequest,
+      onResult,
+    },
+    remountDeps: [renderToken],
+    iframePassthrough: { style, ...rest },
+    updateDeps: [
+      amount,
+      merchantName,
+      appearance,
+      onInitiatePaymentIntentRequest,
+      onResult,
     ],
   });
 
