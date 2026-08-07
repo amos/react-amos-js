@@ -1,5 +1,12 @@
 # @amos.com/react-amos-js
 
+## 0.9.6
+
+### Patch Changes
+
+- Add resetForm API
+- Update @amos.com/amos-js to 0.9.6. Move @amos.com/node to peer dependency. Add `resetForm` React wrapper.
+
 ## 0.9.5
 
 ### Patch Changes

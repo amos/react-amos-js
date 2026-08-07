@@ -4,6 +4,7 @@ import {
   type Appearance,
   confirmPaymentIntent as amosConfirmPaymentIntent,
   confirmSetupIntent as amosConfirmSetupIntent,
+  resetForm as amosResetForm,
   validateForm as amosValidateForm,
   type BillingAddressRequirement,
   type ConfirmationResult,
@@ -77,6 +78,14 @@ export function confirmSetupIntent({
   iframeRef: IframeRef;
 } & Pick<components["schemas"]["EmbedToken"], "token">): void {
   amosConfirmSetupIntent({ iframe: resolveIframe(iframeRef), token });
+}
+
+/**
+ * Clear all field values and API errors in the embedded card/bank iframe
+ * form. Call after `onResult` when the customer wants to try again.
+ */
+export function resetForm({ iframeRef }: { iframeRef: IframeRef }): void {
+  amosResetForm({ iframe: resolveIframe(iframeRef) });
 }
 
 type ForwardedIframeRef = Ref<HTMLIFrameElement> | undefined;
