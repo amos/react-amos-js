@@ -39,7 +39,7 @@ The render token configures the iframe's allowed origin(s), allowed payment meth
 The following flow is for credit card and bank account payment method types only.
 
 1. **Set up prerequisites**: create a `renderToken` (safe for client), and keep `apiKey` and `accountId` server-side only.
-2. **Render your checkout UI** with one of the payment method components (e.g. `AmosCreditCardPaymentMethodForm`) along with the required `onResult` prop. The iframe height is auto-managed by the SDK.
+2. **Render your checkout UI** with one of the payment method components (e.g. `AmosCreditCardPaymentMethodForm`) along with the required `onResult` prop. Card and bank forms show a field-shaped skeleton immediately (sized from `appearance`, `additionalFields`, and `billingAddressRequirement`); iframe height is auto-managed.
 3. **User clicks "Pay now" button**: call `validateForm({ iframeRef })`, which returns `Promise<true>` if the embedded form is valid and `Promise<false>` otherwise.
 4. **Create payment intent on your server**: use your server-side Amos client to call `POST /payment_intents`. You may also associate this payment intent with a new or existing customer via `POST /customers`. This must be server-side because it uses your private API key.
 5. **Return the payment intent token to the browser**: your backend responds with the embed token (`components["schemas"]["EmbedToken"]`) needed for confirmation.
@@ -417,7 +417,7 @@ Clears all field values and API errors in the embedded card/bank iframe form. Ca
 
 ### `AmosCreditCardPaymentMethodForm`
 
-Renders the secure credit card iframe form.
+Renders the secure credit card iframe form. A field-shaped skeleton is shown immediately and replaced by the iframe once appearance is applied.
 
 **Required props:**
 
@@ -436,7 +436,7 @@ Renders the secure credit card iframe form.
 
 ### `AmosBankAccountPaymentMethodForm`
 
-Renders the secure bank account iframe form.
+Renders the secure bank account iframe form. A field-shaped skeleton is shown immediately and replaced by the iframe once appearance is applied.
 
 **Required props:** same as `AmosCreditCardPaymentMethodForm` — `renderToken`, `onResult`.
 
