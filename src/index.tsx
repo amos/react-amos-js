@@ -2,6 +2,7 @@
 
 import {
   type Appearance,
+  type ApplePayButtonElementProps,
   confirmPaymentIntent as amosConfirmPaymentIntent,
   confirmSetupIntent as amosConfirmSetupIntent,
   resetForm as amosResetForm,
@@ -9,6 +10,7 @@ import {
   type BillingAddressRequirement,
   type ConfirmationResult,
   type CreditCardAdditionalFields,
+  type GooglePayButtonElementProps,
   mountAmosApplePayButton,
   mountAmosBankAccountPaymentMethodForm,
   mountAmosCreditCardPaymentMethodForm,
@@ -272,20 +274,21 @@ export function AmosBankAccountPaymentMethodForm({
   return <div ref={containerRef} />;
 }
 
-type AmosGooglePayButtonProps = IframePassthroughProps & {
-  renderToken: string;
-  amount: string;
-  merchantName: string;
-  appearance?: Appearance;
-  onInitiatePaymentIntentRequest: ({
-    paymentIntentCreateAttributes,
-    customerCreateAttributes,
-  }: {
-    paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
-    customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
-  }) => Promise<components["schemas"]["EmbedToken"]["token"]>;
-  onResult: (result: ConfirmationResult) => void;
-};
+type AmosGooglePayButtonProps = Omit<IframePassthroughProps, "style"> &
+  GooglePayButtonElementProps & {
+    renderToken: string;
+    amount: string;
+    merchantName: string;
+    appearance?: Appearance;
+    onInitiatePaymentIntentRequest: ({
+      paymentIntentCreateAttributes,
+      customerCreateAttributes,
+    }: {
+      paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
+      customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
+    }) => Promise<components["schemas"]["EmbedToken"]["token"]>;
+    onResult: (result: ConfirmationResult) => void;
+  };
 
 export function AmosGooglePayButton({
   ref,
@@ -295,6 +298,12 @@ export function AmosGooglePayButton({
   appearance,
   onInitiatePaymentIntentRequest,
   onResult,
+  buttonType,
+  buttonColor,
+  buttonRadius,
+  buttonSizeMode,
+  buttonLocale,
+  buttonBorderType,
   style,
   ...rest
 }: AmosGooglePayButtonProps) {
@@ -311,35 +320,50 @@ export function AmosGooglePayButton({
       appearance,
       onInitiatePaymentIntentRequest,
       onResult,
+      buttonType,
+      buttonColor,
+      buttonRadius,
+      buttonSizeMode,
+      buttonLocale,
+      buttonBorderType,
+      style,
     },
     remountDeps: [renderToken],
-    iframePassthrough: { style, ...rest },
+    iframePassthrough: { ...rest },
     updateDeps: [
       amount,
       merchantName,
       appearance,
       onInitiatePaymentIntentRequest,
       onResult,
+      buttonType,
+      buttonColor,
+      buttonRadius,
+      buttonSizeMode,
+      buttonLocale,
+      buttonBorderType,
+      style,
     ],
   });
 
   return <div ref={containerRef} />;
 }
 
-type AmosApplePayButtonProps = IframePassthroughProps & {
-  renderToken: string;
-  amount: string;
-  merchantName: string;
-  appearance?: Appearance;
-  onInitiatePaymentIntentRequest: ({
-    paymentIntentCreateAttributes,
-    customerCreateAttributes,
-  }: {
-    paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
-    customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
-  }) => Promise<components["schemas"]["EmbedToken"]["token"]>;
-  onResult: (result: ConfirmationResult) => void;
-};
+type AmosApplePayButtonProps = Omit<IframePassthroughProps, "style" | "type"> &
+  ApplePayButtonElementProps & {
+    renderToken: string;
+    amount: string;
+    merchantName: string;
+    appearance?: Appearance;
+    onInitiatePaymentIntentRequest: ({
+      paymentIntentCreateAttributes,
+      customerCreateAttributes,
+    }: {
+      paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
+      customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
+    }) => Promise<components["schemas"]["EmbedToken"]["token"]>;
+    onResult: (result: ConfirmationResult) => void;
+  };
 
 export function AmosApplePayButton({
   ref,
@@ -349,6 +373,9 @@ export function AmosApplePayButton({
   appearance,
   onInitiatePaymentIntentRequest,
   onResult,
+  buttonstyle,
+  type,
+  locale,
   style,
   ...rest
 }: AmosApplePayButtonProps) {
@@ -365,15 +392,23 @@ export function AmosApplePayButton({
       appearance,
       onInitiatePaymentIntentRequest,
       onResult,
+      buttonstyle,
+      type,
+      locale,
+      style,
     },
     remountDeps: [renderToken],
-    iframePassthrough: { style, ...rest },
+    iframePassthrough: { ...rest },
     updateDeps: [
       amount,
       merchantName,
       appearance,
       onInitiatePaymentIntentRequest,
       onResult,
+      buttonstyle,
+      type,
+      locale,
+      style,
     ],
   });
 
