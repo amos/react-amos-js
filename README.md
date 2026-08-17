@@ -172,6 +172,7 @@ import type { components } from "@amos.com/node";
 
 function CheckoutForm() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [isValid, setIsValid] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -222,6 +223,7 @@ function CheckoutForm() {
         ref={iframeRef}
         renderToken="the-render-token-that-you-created-on-dashboard.amos.com"
         additionalFields={{ cardholderName: true }}
+        onValidityChange={({ isValid }) => setIsValid(isValid)}
         onResult={(result) => {
           // Unlock UI. Verify settlement on your backend via webhooks.
           if (result.status === "succeeded") {
@@ -234,7 +236,7 @@ function CheckoutForm() {
         }}
       />
       {error ? <p>{error}</p> : null}
-      <button type="submit" disabled={isProcessing}>
+      <button type="submit" disabled={!isValid || isProcessing}>
         {isProcessing ? "Processing..." : "Pay Now"}
       </button>
     </form>
@@ -428,6 +430,7 @@ Renders the secure credit card iframe form.
 
 - `additionalFields` (`{ cardholderName: boolean }`) — set `additionalFields={{ cardholderName: true }}` to render the cardholder name field in the iframe (`false` by default)
 - `billingAddressRequirement` (`"country" | "full"`, defaults to `"country"`) — how much billing address the iframe collects. `country` collects country / region and, for CA / PR / GB / US, a postal code (labeled ZIP for the United States). `full` shows a full street address form with Smarty autocomplete.
+- `onValidityChange` (`(event: { isValid: boolean }) => void`) — called when form validity changes. `isValid` is true when all required fields are present and valid. Does not include PCI data. Use this to enable or disable your checkout button.
 
 **Also accepts:** standard iframe props (`React.ComponentProps<"iframe">`), minus `src`, `title`, `name`, and `role` (which are controlled by the SDK).
 
@@ -437,7 +440,7 @@ Renders the secure bank account iframe form.
 
 **Required props:** same as `AmosCreditCardPaymentMethodForm` — `renderToken`, `onResult`.
 
-**Optional props:** same as `AmosCreditCardPaymentMethodForm` — `appearance`, `billingAddressRequirement`.
+**Optional props:** same as `AmosCreditCardPaymentMethodForm` — `appearance`, `billingAddressRequirement`, `onValidityChange`.
 
 **Also accepts:** standard iframe props.
 
@@ -510,7 +513,7 @@ Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most int
 
 ### Exported types
 
-`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `ConfirmationResult`, `ConfirmationIncompleteReason`, `FormattedGooglePayPaymentData`, `Message`, `Appearance`, `ThemeVariable`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`.
+`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `ConfirmationResult`, `ConfirmationIncompleteReason`, `PaymentMethodFormValidityChangeEvent`, `FormattedGooglePayPaymentData`, `Message`, `Appearance`, `ThemeVariable`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`.
 
 ## Notes and potential gotchas
 

@@ -194,6 +194,11 @@ type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
   renderToken: string;
   appearance?: Appearance;
   onResult: (result: ConfirmationResult) => void;
+  /**
+   * Called when form validity changes. `isValid` is true when all
+   * required fields are present and valid. Does not include PCI data.
+   */
+  onValidityChange?: (event: { isValid: boolean }) => void;
   additionalFields?: CreditCardAdditionalFields;
   billingAddressRequirement?: BillingAddressRequirement;
 };
@@ -203,6 +208,7 @@ export function AmosCreditCardPaymentMethodForm({
   renderToken,
   appearance,
   onResult,
+  onValidityChange,
   additionalFields = { cardholderName: false },
   billingAddressRequirement = "country",
   style,
@@ -220,6 +226,7 @@ export function AmosCreditCardPaymentMethodForm({
       additionalFields,
       billingAddressRequirement,
       onResult,
+      onValidityChange,
     },
     remountDeps: [
       renderToken,
@@ -232,6 +239,7 @@ export function AmosCreditCardPaymentMethodForm({
       additionalFields,
       billingAddressRequirement,
       onResult,
+      onValidityChange,
     ],
   });
 
@@ -242,6 +250,11 @@ type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
   renderToken: string;
   appearance?: Appearance;
   onResult: (result: ConfirmationResult) => void;
+  /**
+   * Called when form validity changes. `isValid` is true when all
+   * required fields are present and valid. Does not include PCI data.
+   */
+  onValidityChange?: (event: { isValid: boolean }) => void;
   billingAddressRequirement?: BillingAddressRequirement;
 };
 
@@ -250,6 +263,7 @@ export function AmosBankAccountPaymentMethodForm({
   renderToken,
   appearance,
   onResult,
+  onValidityChange,
   billingAddressRequirement = "country",
   style,
   ...rest
@@ -265,10 +279,16 @@ export function AmosBankAccountPaymentMethodForm({
       appearance,
       billingAddressRequirement,
       onResult,
+      onValidityChange,
     },
     remountDeps: [renderToken, billingAddressRequirement],
     iframePassthrough: { style, ...rest },
-    updateDeps: [appearance, billingAddressRequirement, onResult],
+    updateDeps: [
+      appearance,
+      billingAddressRequirement,
+      onResult,
+      onValidityChange,
+    ],
   });
 
   return <div ref={containerRef} />;
