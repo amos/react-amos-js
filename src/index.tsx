@@ -15,6 +15,7 @@ import {
   mountAmosBankAccountPaymentMethodForm,
   mountAmosCreditCardPaymentMethodForm,
   mountAmosGooglePayButton,
+  type WalletButtonStyle,
 } from "@amos.com/amos-js";
 import type { components } from "@amos.com/node";
 import {
@@ -107,6 +108,59 @@ type IframePassthroughProps = Omit<
   ComponentProps<"iframe">,
   "src" | "title" | "name" | "role" | "allow"
 >;
+
+type WalletStyleProps = {
+  /**
+   * Stretch the wallet button to fill the iframe width.
+   *
+   * @default false
+   */
+  fullWidth?: boolean;
+  /** Styles applied to the wallet button inside the Amos iframe. */
+  buttonStyle?: WalletButtonStyle;
+  /** Styles applied to the host-page `<iframe>` element. */
+  iframeStyle?: ComponentProps<"iframe">["style"];
+  /**
+   * Styles applied to the wallet button inside the Amos iframe.
+   *
+   * @deprecated Use `buttonStyle` to distinguish it from `iframeStyle`.
+   */
+  style?: WalletButtonStyle;
+};
+
+function resolveGooglePayButtonLayout({
+  buttonSizeMode,
+  style,
+  fullWidth,
+}: {
+  buttonSizeMode?: GooglePayButtonElementProps["buttonSizeMode"];
+  style?: WalletButtonStyle;
+  fullWidth: boolean;
+}): Pick<GooglePayButtonElementProps, "buttonSizeMode" | "style"> {
+  return {
+    buttonSizeMode: buttonSizeMode ?? (fullWidth ? "fill" : undefined),
+    style: fullWidth ? { width: "100%", ...style } : style,
+  };
+}
+
+function resolveApplePayButtonLayout({
+  style,
+  fullWidth,
+}: {
+  style?: WalletButtonStyle;
+  fullWidth: boolean;
+}): Pick<ApplePayButtonElementProps, "style"> {
+  if (!fullWidth) {
+    return { style };
+  }
+  return {
+    style: {
+      "--apple-pay-button-width": "100%",
+      width: "100%",
+      ...style,
+    },
+  };
+}
 
 function applyIframePassthrough(
   iframe: HTMLIFrameElement,
@@ -295,7 +349,8 @@ export function AmosBankAccountPaymentMethodForm({
 }
 
 type AmosGooglePayButtonProps = Omit<IframePassthroughProps, "style"> &
-  GooglePayButtonElementProps & {
+  Omit<GooglePayButtonElementProps, "style"> &
+  WalletStyleProps & {
     renderToken: string;
     amount: string;
     merchantName: string;
@@ -324,10 +379,19 @@ export function AmosGooglePayButton({
   buttonSizeMode,
   buttonLocale,
   buttonBorderType,
+  fullWidth = false,
+  buttonStyle,
+  iframeStyle,
   style,
   ...rest
 }: AmosGooglePayButtonProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const resolvedStyle = buttonStyle ?? style;
+  const layout = resolveGooglePayButtonLayout({
+    buttonSizeMode,
+    style: resolvedStyle,
+    fullWidth,
+  });
 
   useAmosEmbed({
     containerRef,
@@ -343,13 +407,13 @@ export function AmosGooglePayButton({
       buttonType,
       buttonColor,
       buttonRadius,
-      buttonSizeMode,
+      buttonSizeMode: layout.buttonSizeMode,
       buttonLocale,
       buttonBorderType,
-      style,
+      style: layout.style,
     },
     remountDeps: [renderToken],
-    iframePassthrough: { ...rest },
+    iframePassthrough: { style: iframeStyle, ...rest },
     updateDeps: [
       amount,
       merchantName,
@@ -359,10 +423,10 @@ export function AmosGooglePayButton({
       buttonType,
       buttonColor,
       buttonRadius,
-      buttonSizeMode,
+      layout.buttonSizeMode,
       buttonLocale,
       buttonBorderType,
-      style,
+      layout.style,
     ],
   });
 
@@ -370,7 +434,8 @@ export function AmosGooglePayButton({
 }
 
 type AmosApplePayButtonProps = Omit<IframePassthroughProps, "style" | "type"> &
-  ApplePayButtonElementProps & {
+  Omit<ApplePayButtonElementProps, "style"> &
+  WalletStyleProps & {
     renderToken: string;
     amount: string;
     merchantName: string;
@@ -396,10 +461,18 @@ export function AmosApplePayButton({
   buttonstyle,
   type,
   locale,
+  fullWidth = false,
+  buttonStyle,
+  iframeStyle,
   style,
   ...rest
 }: AmosApplePayButtonProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const resolvedStyle = buttonStyle ?? style;
+  const layout = resolveApplePayButtonLayout({
+    style: resolvedStyle,
+    fullWidth,
+  });
 
   useAmosEmbed({
     containerRef,
@@ -415,10 +488,10 @@ export function AmosApplePayButton({
       buttonstyle,
       type,
       locale,
-      style,
+      style: layout.style,
     },
     remountDeps: [renderToken],
-    iframePassthrough: { ...rest },
+    iframePassthrough: { style: iframeStyle, ...rest },
     updateDeps: [
       amount,
       merchantName,
@@ -428,7 +501,7 @@ export function AmosApplePayButton({
       buttonstyle,
       type,
       locale,
-      style,
+      layout.style,
     ],
   });
 

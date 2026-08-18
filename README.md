@@ -460,15 +460,27 @@ Renders the secure Google Pay iframe button (express checkout flow).
 **Optional props:**
 
 - `appearance` (`{ themeVariables?: Partial<Record<ThemeVariable, string>>; labels?: "above" | "floating" | "placeholder" }`)
+- `fullWidth` (`boolean`, defaults to `false`) — fills the component's mount container
 - `buttonType` (`"book" | "buy" | "checkout" | "donate" | "order" | "pay" | "plain" | "subscribe" | "short" | "long"`, defaults to `"short"`)
 - `buttonColor` (`"default" | "black" | "white"`)
 - `buttonRadius` (`number`, 0–20)
 - `buttonSizeMode` (`"static" | "fill"`)
 - `buttonLocale` (`string`)
 - `buttonBorderType` (`"no_border" | "default_border"`)
-- `style` — forwarded to the Google Pay button **inside** the iframe (not the iframe element). Example: `style={{ height: "48px", width: "100%" }}` with `buttonSizeMode="fill"`.
+- `buttonStyle` — styles the Google Pay button **inside** the iframe, for example `buttonStyle={{ height: "48px" }}`
+- `iframeStyle` — styles the host-page `<iframe>` element
+- `style` — backward-compatible alias for `buttonStyle`; prefer the explicit name in new integrations
 
-**Also accepts:** standard iframe props, minus `src`, `title`, `name`, `role`, `allow`, and `style` (which is the inner button style).
+```tsx
+<AmosGooglePayButton
+  fullWidth
+  buttonStyle={{ height: "48px" }}
+  iframeStyle={{ borderRadius: "6px" }}
+  // ...required props
+/>
+```
+
+**Also accepts:** standard iframe props, minus `src`, `title`, `name`, `role`, `allow`, and `style`.
 
 ### `AmosApplePayButton`
 
@@ -476,21 +488,22 @@ Renders the secure Apple Pay iframe button (express checkout flow). Same require
 
 **Optional visual props** use Apple's `<apple-pay-button>` attribute names:
 
+- `fullWidth` (`boolean`, defaults to `false`) — fills the component's mount container
 - `buttonstyle` (`"black" | "white" | "white-outline"`, defaults to `"black"`)
 - `type` (`"plain" | "buy" | "set-up" | "donate" | "check-out" | "book" | "subscribe" | "reload" | "add-money" | "top-up" | "order" | "rent" | "support" | "contribute" | "tip"`, defaults to `"plain"`)
 - `locale` (`string`, BCP 47, defaults to `"en-US"`)
-- `style` — forwarded to the `<apple-pay-button>` inside the iframe. Apple sizes the button with CSS custom properties:
+- `buttonStyle` — forwarded to the `<apple-pay-button>` inside the iframe. Apple maps a CSS `height` onto its required custom property.
+- `iframeStyle` — styles the host-page `<iframe>` element
+- `style` — backward-compatible alias for `buttonStyle`
 
 ```tsx
 <AmosApplePayButton
+  fullWidth
   buttonstyle="white-outline"
   type="buy"
   locale="en-GB"
-  style={{
-    "--apple-pay-button-height": "48px",
-    "--apple-pay-button-width": "100%",
-    width: "100%",
-  }}
+  buttonStyle={{ height: "48px" }}
+  iframeStyle={{ borderRadius: "6px" }}
   // ...required props
 />
 ```

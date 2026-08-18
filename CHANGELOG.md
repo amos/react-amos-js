@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.9.12
+
+### Patch Changes
+
+- Styling improvements
+
 ## 0.9.11
 
 ### Patch Changes
