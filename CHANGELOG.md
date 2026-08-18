@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.9.13
+
+### Patch Changes
+
+- Add appearance variables
+
 ## 0.9.12
 
 ### Patch Changes
