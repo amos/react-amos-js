@@ -10,11 +10,13 @@ import {
   type BillingAddressRequirement,
   type ConfirmationResult,
   type CreditCardAdditionalFields,
+  ensureSkeletonStyles,
   type GooglePayButtonElementProps,
   mountAmosApplePayButton,
   mountAmosBankAccountPaymentMethodForm,
   mountAmosCreditCardPaymentMethodForm,
   mountAmosGooglePayButton,
+  resolveWalletButtonSkeletonBorderRadius,
 } from "@amos.com/amos-js";
 import type { components } from "@amos.com/node";
 import {
@@ -22,6 +24,7 @@ import {
   type Ref,
   type RefObject,
   useEffect,
+  useLayoutEffect,
   useRef,
 } from "react";
 
@@ -157,7 +160,7 @@ function useAmosEmbed<TOptions extends Record<string, unknown>>({
   const controllerRef = useRef<AmosEmbedController | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: remount only when remountDeps change
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) {
       return;
@@ -186,6 +189,59 @@ function useAmosEmbed<TOptions extends Record<string, unknown>>({
       applyIframePassthrough(iframe, iframePassthrough);
     }
   });
+}
+
+const SKELETON_ACCENT = "oklch(0.97 0 0)";
+
+function WalletButtonSlot({
+  height,
+  borderRadius,
+  containerRef,
+}: {
+  height: string;
+  borderRadius: string;
+  containerRef: RefObject<HTMLDivElement | null>;
+}) {
+  useLayoutEffect(() => {
+    ensureSkeletonStyles();
+  }, []);
+
+  return (
+    <div
+      style={{
+        boxSizing: "border-box",
+        position: "relative",
+        width: "100%",
+        height,
+        minHeight: height,
+        overflow: "hidden",
+      }}
+    >
+      <div
+        className="amos-js-form-skeleton-input amos-js-wallet-skeleton"
+        style={{
+          position: "absolute",
+          inset: 0,
+          height,
+          borderRadius,
+          background: SKELETON_ACCENT,
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+        aria-hidden
+      />
+      <div
+        ref={containerRef}
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 1,
+          width: "100%",
+          height: "100%",
+        }}
+      />
+    </div>
+  );
 }
 
 type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
@@ -326,6 +382,11 @@ type AmosGooglePayButtonProps = {
   onResult: (result: ConfirmationResult) => void;
 };
 
+/**
+ * Renders the secure Google Pay iframe button. A button-shaped
+ * skeleton is painted in the parent document on first render (including
+ * SSR) so the slot height is reserved before the iframe loads.
+ */
 export function AmosGooglePayButton({
   ref,
   renderToken,
@@ -338,6 +399,10 @@ export function AmosGooglePayButton({
   onResult,
 }: AmosGooglePayButtonProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const borderRadius = resolveWalletButtonSkeletonBorderRadius({
+    iframeStyle: iframeProps?.style as { borderRadius?: string | number },
+    buttonProps,
+  });
 
   useAmosEmbed({
     containerRef,
@@ -364,7 +429,13 @@ export function AmosGooglePayButton({
     ],
   });
 
-  return <div ref={containerRef} />;
+  return (
+    <WalletButtonSlot
+      height={height}
+      borderRadius={borderRadius}
+      containerRef={containerRef}
+    />
+  );
 }
 
 type AmosApplePayButtonProps = {
@@ -401,6 +472,11 @@ type AmosApplePayButtonProps = {
   onResult: (result: ConfirmationResult) => void;
 };
 
+/**
+ * Renders the secure Apple Pay iframe button. A button-shaped
+ * skeleton is painted in the parent document on first render (including
+ * SSR) so the slot height is reserved before the iframe loads.
+ */
 export function AmosApplePayButton({
   ref,
   renderToken,
@@ -413,6 +489,10 @@ export function AmosApplePayButton({
   onResult,
 }: AmosApplePayButtonProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const borderRadius = resolveWalletButtonSkeletonBorderRadius({
+    iframeStyle: iframeProps?.style as { borderRadius?: string | number },
+    buttonProps,
+  });
 
   useAmosEmbed({
     containerRef,
@@ -439,5 +519,11 @@ export function AmosApplePayButton({
     ],
   });
 
-  return <div ref={containerRef} />;
+  return (
+    <WalletButtonSlot
+      height={height}
+      borderRadius={borderRadius}
+      containerRef={containerRef}
+    />
+  );
 }

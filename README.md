@@ -39,7 +39,7 @@ The render token configures the iframe's allowed origin(s), allowed payment meth
 The following flow is for credit card and bank account payment method types only.
 
 1. **Set up prerequisites**: create a `renderToken` (safe for client), and keep `apiKey` and `accountId` server-side only.
-2. **Render your checkout UI** with one of the payment method components (e.g. `AmosCreditCardPaymentMethodForm`) along with the required `onResult` prop. Card and bank forms show a field-shaped skeleton immediately (sized from `appearance`, `additionalFields`, and `billingAddressRequirement`); iframe height is auto-managed.
+2. **Render your checkout UI** with one of the payment method components (e.g. `AmosCreditCardPaymentMethodForm`) along with the required `onResult` prop. Card and bank forms show a field-shaped skeleton immediately (sized from `appearance`, `additionalFields`, and `billingAddressRequirement`); Google Pay and Apple Pay paint a button-shaped skeleton in the parent document on first render so the 48px slot is reserved before the iframe loads.
 3. **User clicks "Pay now" button**: call `validateForm({ iframeRef })`, which returns `Promise<true>` if the embedded form is valid and `Promise<false>` otherwise.
 4. **Create payment intent on your server**: use your server-side Amos client to call `POST /payment_intents`. You may also associate this payment intent with a new or existing customer via `POST /customers`. This must be server-side because it uses your private API key.
 5. **Return the payment intent token to the browser**: your backend responds with the embed token (`components["schemas"]["EmbedToken"]`) needed for confirmation.
@@ -500,7 +500,7 @@ Renders the secure bank account iframe form. A field-shaped skeleton is shown im
 
 ### `AmosGooglePayButton`
 
-Renders the secure Google Pay iframe button (express checkout flow).
+Renders the secure Google Pay iframe button (express checkout flow). A button-shaped skeleton is shown immediately and replaced by the iframe once appearance is applied.
 
 **Required props:**
 
@@ -527,7 +527,7 @@ Renders the secure Google Pay iframe button (express checkout flow).
 
 ### `AmosApplePayButton`
 
-Renders the secure Apple Pay iframe button (express checkout flow). Same required props and callbacks as `AmosGooglePayButton`.
+Renders the secure Apple Pay iframe button (express checkout flow). Same required props and callbacks as `AmosGooglePayButton`. A button-shaped skeleton is shown immediately and replaced by the iframe once appearance is applied.
 
 **Optional visual props:**
 
