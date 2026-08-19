@@ -15,7 +15,6 @@ import {
   mountAmosBankAccountPaymentMethodForm,
   mountAmosCreditCardPaymentMethodForm,
   mountAmosGooglePayButton,
-  type WalletButtonStyle,
 } from "@amos.com/amos-js";
 import type { components } from "@amos.com/node";
 import {
@@ -109,59 +108,6 @@ type IframePassthroughProps = Omit<
   "src" | "title" | "name" | "role" | "allow"
 >;
 
-type WalletStyleProps = {
-  /**
-   * Stretch the wallet button to fill the iframe width.
-   *
-   * @default false
-   */
-  fullWidth?: boolean;
-  /** Styles applied to the wallet button inside the Amos iframe. */
-  buttonStyle?: WalletButtonStyle;
-  /** Styles applied to the host-page `<iframe>` element. */
-  iframeStyle?: ComponentProps<"iframe">["style"];
-  /**
-   * Styles applied to the wallet button inside the Amos iframe.
-   *
-   * @deprecated Use `buttonStyle` to distinguish it from `iframeStyle`.
-   */
-  style?: WalletButtonStyle;
-};
-
-function resolveGooglePayButtonLayout({
-  buttonSizeMode,
-  style,
-  fullWidth,
-}: {
-  buttonSizeMode?: GooglePayButtonElementProps["buttonSizeMode"];
-  style?: WalletButtonStyle;
-  fullWidth: boolean;
-}): Pick<GooglePayButtonElementProps, "buttonSizeMode" | "style"> {
-  return {
-    buttonSizeMode: buttonSizeMode ?? (fullWidth ? "fill" : undefined),
-    style: fullWidth ? { width: "100%", ...style } : style,
-  };
-}
-
-function resolveApplePayButtonLayout({
-  style,
-  fullWidth,
-}: {
-  style?: WalletButtonStyle;
-  fullWidth: boolean;
-}): Pick<ApplePayButtonElementProps, "style"> {
-  if (!fullWidth) {
-    return { style };
-  }
-  return {
-    style: {
-      "--apple-pay-button-width": "100%",
-      width: "100%",
-      ...style,
-    },
-  };
-}
-
 function applyIframePassthrough(
   iframe: HTMLIFrameElement,
   { style, className, id, ...rest }: IframePassthroughProps,
@@ -172,9 +118,7 @@ function applyIframePassthrough(
   if (id != null) {
     iframe.id = id;
   }
-  if (style != null) {
-    Object.assign(iframe.style, style);
-  }
+  Object.assign(iframe.style, style);
   for (const [key, value] of Object.entries(rest)) {
     if (value == null) {
       continue;
@@ -348,50 +292,47 @@ export function AmosBankAccountPaymentMethodForm({
   return <div ref={containerRef} />;
 }
 
-type AmosGooglePayButtonProps = Omit<IframePassthroughProps, "style"> &
-  Omit<GooglePayButtonElementProps, "style"> &
-  WalletStyleProps & {
-    renderToken: string;
-    amount: string;
-    merchantName: string;
-    appearance?: Appearance;
-    onInitiatePaymentIntentRequest: ({
-      paymentIntentCreateAttributes,
-      customerCreateAttributes,
-    }: {
-      paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
-      customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
-    }) => Promise<components["schemas"]["EmbedToken"]["token"]>;
-    onResult: (result: ConfirmationResult) => void;
-  };
+type AmosGooglePayButtonProps = {
+  ref?: ForwardedIframeRef;
+  renderToken: string;
+  amount: string;
+  merchantName: string;
+  /**
+   * Painted button height. CSS length (e.g. `"48px"`).
+   * @default "48px"
+   */
+  height?: string;
+  /**
+   * Native Google Pay button attributes and inner style. Omitted
+   * fields keep Amos paint defaults (`buttonType: "plain"`,
+   * `buttonSizeMode: "fill"`). The button fills the iframe — size the
+   * mount slot, not the button.
+   */
+  buttonProps?: GooglePayButtonElementProps;
+  /** Props applied to the host-page `<iframe>` element. */
+  iframeProps?: IframePassthroughProps;
+  onInitiatePaymentIntentRequest: ({
+    paymentIntentCreateAttributes,
+    customerCreateAttributes,
+  }: {
+    paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
+    customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
+  }) => Promise<components["schemas"]["EmbedToken"]["token"]>;
+  onResult: (result: ConfirmationResult) => void;
+};
 
 export function AmosGooglePayButton({
   ref,
   renderToken,
   amount,
   merchantName,
-  appearance,
+  height = "48px",
+  buttonProps,
+  iframeProps,
   onInitiatePaymentIntentRequest,
   onResult,
-  buttonType,
-  buttonColor,
-  buttonRadius,
-  buttonSizeMode,
-  buttonLocale,
-  buttonBorderType,
-  fullWidth = false,
-  buttonStyle,
-  iframeStyle,
-  style,
-  ...rest
 }: AmosGooglePayButtonProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const resolvedStyle = buttonStyle ?? style;
-  const layout = resolveGooglePayButtonLayout({
-    buttonSizeMode,
-    style: resolvedStyle,
-    fullWidth,
-  });
 
   useAmosEmbed({
     containerRef,
@@ -401,78 +342,67 @@ export function AmosGooglePayButton({
       renderToken,
       amount,
       merchantName,
-      appearance,
+      height,
+      buttonProps,
       onInitiatePaymentIntentRequest,
       onResult,
-      buttonType,
-      buttonColor,
-      buttonRadius,
-      buttonSizeMode: layout.buttonSizeMode,
-      buttonLocale,
-      buttonBorderType,
-      style: layout.style,
     },
     remountDeps: [renderToken],
-    iframePassthrough: { style: iframeStyle, ...rest },
+    iframePassthrough: iframeProps ?? {},
     updateDeps: [
       amount,
       merchantName,
-      appearance,
+      height,
+      buttonProps,
       onInitiatePaymentIntentRequest,
       onResult,
-      buttonType,
-      buttonColor,
-      buttonRadius,
-      layout.buttonSizeMode,
-      buttonLocale,
-      buttonBorderType,
-      layout.style,
     ],
   });
 
   return <div ref={containerRef} />;
 }
 
-type AmosApplePayButtonProps = Omit<IframePassthroughProps, "style" | "type"> &
-  Omit<ApplePayButtonElementProps, "style"> &
-  WalletStyleProps & {
-    renderToken: string;
-    amount: string;
-    merchantName: string;
-    appearance?: Appearance;
-    onInitiatePaymentIntentRequest: ({
-      paymentIntentCreateAttributes,
-      customerCreateAttributes,
-    }: {
-      paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
-      customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
-    }) => Promise<components["schemas"]["EmbedToken"]["token"]>;
-    onResult: (result: ConfirmationResult) => void;
-  };
+type AmosApplePayButtonProps = {
+  ref?: ForwardedIframeRef;
+  renderToken: string;
+  amount: string;
+  merchantName: string;
+  /**
+   * Painted button height. CSS length (e.g. `"48px"`). Apple ignores
+   * CSS `height`; Amos maps this for you.
+   * @default "48px"
+   */
+  height?: string;
+  /**
+   * Native `<apple-pay-button>` attributes and inner style. Omitted
+   * fields keep Apple's defaults (`black` / `plain` / `en-US`). The
+   * button fills the iframe — size the mount slot, not the button.
+   */
+  buttonProps?: ApplePayButtonElementProps;
+  /** Props applied to the host-page `<iframe>` element. */
+  iframeProps?: IframePassthroughProps;
+  onInitiatePaymentIntentRequest: ({
+    paymentIntentCreateAttributes,
+    customerCreateAttributes,
+  }: {
+    paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
+    customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
+  }) => Promise<components["schemas"]["EmbedToken"]["token"]>;
+  onResult: (result: ConfirmationResult) => void;
+};
 
 export function AmosApplePayButton({
   ref,
   renderToken,
   amount,
   merchantName,
-  appearance,
+  height = "48px",
+  buttonProps,
+  iframeProps,
   onInitiatePaymentIntentRequest,
   onResult,
-  buttonstyle,
-  type,
-  locale,
-  fullWidth = false,
-  buttonStyle,
-  iframeStyle,
-  style,
-  ...rest
 }: AmosApplePayButtonProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const resolvedStyle = buttonStyle ?? style;
-  const layout = resolveApplePayButtonLayout({
-    style: resolvedStyle,
-    fullWidth,
-  });
 
   useAmosEmbed({
     containerRef,
@@ -482,26 +412,20 @@ export function AmosApplePayButton({
       renderToken,
       amount,
       merchantName,
-      appearance,
+      height,
+      buttonProps,
       onInitiatePaymentIntentRequest,
       onResult,
-      buttonstyle,
-      type,
-      locale,
-      style: layout.style,
     },
     remountDeps: [renderToken],
-    iframePassthrough: { style: iframeStyle, ...rest },
+    iframePassthrough: iframeProps ?? {},
     updateDeps: [
       amount,
       merchantName,
-      appearance,
+      height,
+      buttonProps,
       onInitiatePaymentIntentRequest,
       onResult,
-      buttonstyle,
-      type,
-      locale,
-      layout.style,
     ],
   });
 

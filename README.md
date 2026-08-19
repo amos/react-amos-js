@@ -10,7 +10,7 @@ It is a thin wrapper around [`@amos.com/amos-js`](../amos-js) that adapts the fr
 npm install @amos.com/react-amos-js @amos.com/node
 ```
 
-`@amos.com/node` is a **peer dependency** (requires `>=0.1.37`). Install it in your app for OpenAPI schema types (for example `components["schemas"]["CreatePaymentIntentInput"]`) used in the examples below, and for your server-side Amos API client. React (`^17`, `^18`, or `^19`) is also a peer dependency.
+`@amos.com/node` is a **peer dependency** (requires `>=0.1.39`). Install it in your app for OpenAPI schema types (for example `components["schemas"]["CreatePaymentIntentInput"]`) used in the examples below, and for your server-side Amos API client. React (`^17`, `^18`, or `^19`) is also a peer dependency.
 
 ## What it gives you
 
@@ -28,7 +28,7 @@ npm install @amos.com/react-amos-js @amos.com/node
 3. Amos account ID (provided once your application has been approved)
 ```
 
-The render token configures the iframe's allowed origin(s), allowed payment methods, and the range of valid payment amounts. If the render token does not allow an origin, the iframe will not render. Similarly, components corresponding to different payment method types will not render if not allowed by the render token.
+The render token configures the iframe's allowed origin(s), allowed payment methods, accepted billing countries or US states, and the range of valid payment amounts. These settings come from the render template and are embedded in the token JWT (`RenderTokenJwt`); billing geography is controlled by `billing_address_options` (`allowed_countries` for international templates, `allowed_states` for US-only). If the render token does not allow an origin, the iframe will not render. Similarly, components corresponding to different payment method types will not render if not allowed by the render token, and billing addresses outside the configured countries or states will be rejected.
 
 > **Note**: The render token also determines the environment (`production` or `sandbox`). Render tokens created on `dashboard.amos.com` have a `production` environment. Render tokens created on `dashboard-sandbox.amos.com` have a `sandbox` environment. Similarly, API keys can only access the environment that they were created in.
 
@@ -62,7 +62,7 @@ Setup intents are used to save payment methods for future use (e.g. recurring pa
 
 - On the server, call `POST /setup_intents` instead of `POST /payment_intents`.
 - On the client, call `confirmSetupIntent({ iframeRef, token })` instead of `confirmPaymentIntent({ iframeRef, token })`.
-- The same `onResult` callback is used for setup intents (`intent: "setup"`).
+- The same `onResult` callback is used; succeeded setup intents arrive as `{ status: "succeeded", intent: "setup", setupIntent }`.
 
 The same `AmosCreditCardPaymentMethodForm` / `AmosBankAccountPaymentMethodForm` components support both payment intents and setup intents — they are differentiated by which confirmation function you call.
 
@@ -82,7 +82,7 @@ In short, your app orchestrates the payment flow, while sensitive payment data s
 
 ## Appearance
 
-Every component accepts an optional `appearance` prop that controls the look of the iframe UI. It contains a `themeVariables` object whose keys are CSS custom-property names and whose values are strings, and an optional `labels` setting for field label placement. You can update this prop after page load to update the iframe appearance.
+Card and bank components accept an optional `appearance` prop that controls the look of the iframe UI. It contains a `themeVariables` object whose keys are CSS custom-property names and whose values are strings, and an optional `labels` setting for field label placement. You can update this prop after page load to update the iframe appearance. Wallet buttons do not take `appearance`.
 
 ```tsx
 <AmosCreditCardPaymentMethodForm
@@ -107,57 +107,57 @@ Every component accepts an optional `appearance` prop that controls the look of 
 
 Set `labels` to control how field labels are rendered in card and bank account forms:
 
-| Value | Behavior |
-| ----- | -------- |
-| `above` (default) | Label text above each input |
-| `floating` | Label inside the control; moves up when focused or filled |
-| `placeholder` | No visible label; placeholder and `aria-label` only |
+| Value             | Behavior                                                  |
+| ----------------- | --------------------------------------------------------- |
+| `above` (default) | Label text above each input                               |
+| `floating`        | Label inside the control; moves up when focused or filled |
+| `placeholder`     | No visible label; placeholder and `aria-label` only       |
 
 Radio groups (e.g. account type) always use an above-style group label regardless of this setting.
 
 ### Available theme variables
 
-| Variable                 | Purpose                                        | Default                     |
-| ------------------------ | ---------------------------------------------- | --------------------------- |
-| `--background`           | Page body and base surface color               | `oklch(1 0 0)`              |
-| `--foreground`           | Default text color                             | `oklch(0.145 0 0)`          |
-| `--primary`              | Button fill and input text-selection highlight | `oklch(0.205 0 0)`          |
-| `--primary-foreground`   | Text on primary-colored surfaces               | `oklch(0.985 0 0)`          |
-| `--secondary`            | Secondary button fill                          | `oklch(0.97 0 0)`           |
-| `--secondary-foreground` | Text on secondary-colored surfaces             | `oklch(0.205 0 0)`          |
-| `--muted`                      | Muted surface color                                              | `oklch(0.97 0 0)`           |
-| `--muted-foreground`           | Placeholder text, helper labels, muted icons                     | `oklch(0.556 0 0)`          |
-| `--accent`                     | Hover/focus highlight for interactive items                      | `oklch(0.97 0 0)`           |
-| `--accent-foreground`          | Text on accent-highlighted items                                 | `oklch(0.205 0 0)`          |
-| `--destructive`                | Error/invalid state borders, icons, and field error text         | `oklch(0.577 0.245 27.325)` |
-| `--destructive-foreground`     | Text on destructive-colored surfaces                             | `oklch(0.45 0.24 27.325)`   |
-| `--border`                     | General border color                                             | `oklch(0.922 0 0)`          |
-| `--popover`                    | Dropdown / popover panel background                              | `oklch(1 0 0)`              |
-| `--popover-foreground`         | Dropdown / popover panel text color                              | `oklch(0.145 0 0)`          |
-| `--input`                      | Input field border color                                         | `oklch(0.922 0 0)`          |
-| `--input-background`           | Input field background fill                                      | `var(--background)`         |
-| `--input-height`               | Height of text inputs and form controls                          | `2.25rem`                   |
-| `--input-font-size`            | Font size of text inputs and dropdown fields                     | `0.875rem`                  |
-| `--input-font-weight`          | Font weight of typed input values                                | `400`                       |
-| `--input-padding`              | Horizontal padding inside inputs                                 | `0.75rem`                   |
-| `--input-border-width`         | Input field border width                                         | `1px`                       |
-| `--input-shadow`               | Input field box shadow                                           | `0 1px 2px 0 rgb(0 0 0 / 0.05)` |
-| `--floating-input-height`      | Height of inputs when labels are floating                        | `3.25rem`                   |
-| `--floating-label-font-size`        | Font size of floating labels when focused or filled              | `0.75rem`                   |
-| `--floating-label-empty-font-size`  | Font size of floating labels when empty (unfocused)              | `var(--input-font-size)`    |
-| `--floating-label-font-weight`      | Font weight of floating labels                                   | `500`                       |
-| `--floating-label-color`            | Color of floating labels when empty (unfocused)                  | `var(--muted-foreground)`   |
-| `--floating-label-floated-color`    | Color of floating labels when focused or filled                  | `var(--floating-label-color)` |
-| `--floating-label-offset`           | Top offset of the shrunk floating label                          | `0.625rem`                  |
-| `--label-font-size`            | Font size of above-style field labels                            | `0.875rem`                  |
-| `--label-font-weight`          | Font weight of above-style field labels                          | `500`                       |
-| `--field-gap`                  | Vertical gap between stacked form fields                         | `1rem`                      |
-| `--control-gap`                | Horizontal gap between side-by-side controls                     | `0.5rem`                    |
-| `--error-font-size`            | Font size of field-level error messages                          | `0.875rem`                  |
-| `--radio-size`                 | Size of radio buttons on the bank account form                   | `1rem`                      |
-| `--ring`                       | Focus ring and outline color                                     | `oklch(0.708 0 0)`          |
-| `--ring-width`                 | Focus ring width                                                 | `3px`                       |
-| `--radius`                     | Base border-radius (derived into sm/md/lg/xl)                    | `0.625rem`                  |
+| Variable                           | Purpose                                                  | Default                         |
+| ---------------------------------- | -------------------------------------------------------- | ------------------------------- |
+| `--background`                     | Page body and base surface color                         | `oklch(1 0 0)`                  |
+| `--foreground`                     | Default text color                                       | `oklch(0.145 0 0)`              |
+| `--primary`                        | Button fill and input text-selection highlight           | `oklch(0.205 0 0)`              |
+| `--primary-foreground`             | Text on primary-colored surfaces                         | `oklch(0.985 0 0)`              |
+| `--secondary`                      | Secondary button fill                                    | `oklch(0.97 0 0)`               |
+| `--secondary-foreground`           | Text on secondary-colored surfaces                       | `oklch(0.205 0 0)`              |
+| `--muted`                          | Muted surface color                                      | `oklch(0.97 0 0)`               |
+| `--muted-foreground`               | Placeholder text, helper labels, muted icons             | `oklch(0.556 0 0)`              |
+| `--accent`                         | Hover/focus highlight for interactive items              | `oklch(0.97 0 0)`               |
+| `--accent-foreground`              | Text on accent-highlighted items                         | `oklch(0.205 0 0)`              |
+| `--destructive`                    | Error/invalid state borders, icons, and field error text | `oklch(0.577 0.245 27.325)`     |
+| `--destructive-foreground`         | Text on destructive-colored surfaces                     | `oklch(0.45 0.24 27.325)`       |
+| `--border`                         | General border color                                     | `oklch(0.922 0 0)`              |
+| `--popover`                        | Dropdown / popover panel background                      | `oklch(1 0 0)`                  |
+| `--popover-foreground`             | Dropdown / popover panel text color                      | `oklch(0.145 0 0)`              |
+| `--input`                          | Input field border color                                 | `oklch(0.922 0 0)`              |
+| `--input-background`               | Input field background fill                              | `var(--background)`             |
+| `--input-height`                   | Height of text inputs and form controls                  | `2.25rem`                       |
+| `--input-font-size`                | Font size of text inputs and dropdown fields             | `0.875rem`                      |
+| `--input-font-weight`              | Font weight of typed input values                        | `400`                           |
+| `--input-padding`                  | Horizontal padding inside inputs                         | `0.75rem`                       |
+| `--input-border-width`             | Input field border width                                 | `1px`                           |
+| `--input-shadow`                   | Input field box shadow                                   | `0 1px 2px 0 rgb(0 0 0 / 0.05)` |
+| `--floating-input-height`          | Height of inputs when labels are floating                | `3.25rem`                       |
+| `--floating-label-font-size`       | Font size of floating labels when focused or filled      | `0.75rem`                       |
+| `--floating-label-empty-font-size` | Font size of floating labels when empty (unfocused)      | `var(--input-font-size)`        |
+| `--floating-label-font-weight`     | Font weight of floating labels                           | `500`                           |
+| `--floating-label-color`           | Color of floating labels when empty (unfocused)          | `var(--muted-foreground)`       |
+| `--floating-label-floated-color`   | Color of floating labels when focused or filled          | `var(--floating-label-color)`   |
+| `--floating-label-offset`          | Top offset of the shrunk floating label                  | `0.625rem`                      |
+| `--label-font-size`                | Font size of above-style field labels                    | `0.875rem`                      |
+| `--label-font-weight`              | Font weight of above-style field labels                  | `500`                           |
+| `--field-gap`                      | Vertical gap between stacked form fields                 | `1rem`                          |
+| `--control-gap`                    | Horizontal gap between side-by-side controls             | `0.5rem`                        |
+| `--error-font-size`                | Font size of field-level error messages                  | `0.875rem`                      |
+| `--radio-size`                     | Size of radio buttons on the bank account form           | `1rem`                          |
+| `--ring`                           | Focus ring and outline color                             | `oklch(0.708 0 0)`              |
+| `--ring-width`                     | Focus ring width                                         | `3px`                           |
+| `--radius`                         | Base border-radius (derived into sm/md/lg/xl)            | `0.625rem`                      |
 
 ## Examples
 
@@ -192,10 +192,11 @@ function CheckoutForm() {
         return;
       }
 
-      const paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"] = {
-        amount: 5000, // $50.00 in cents
-        capture_method: "automatic",
-      };
+      const paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"] =
+        {
+          amount: 5000, // $50.00 in cents
+          capture_method: "automatic",
+        };
 
       const response = await fetch("/api/payment-intents", {
         method: "POST",
@@ -461,51 +462,36 @@ Renders the secure Google Pay iframe button (express checkout flow).
 
 **Optional props:**
 
-- `appearance` (`{ themeVariables?: Partial<Record<ThemeVariable, string>>; labels?: "above" | "floating" | "placeholder" }`)
-- `fullWidth` (`boolean`, defaults to `false`) — fills the component's mount container
-- `buttonType` (`"book" | "buy" | "checkout" | "donate" | "order" | "pay" | "plain" | "subscribe" | "short" | "long"`, defaults to `"short"`)
-- `buttonColor` (`"default" | "black" | "white"`)
-- `buttonRadius` (`number`, 0–20)
-- `buttonSizeMode` (`"static" | "fill"`)
-- `buttonLocale` (`string`)
-- `buttonBorderType` (`"no_border" | "default_border"`)
-- `buttonStyle` — styles the Google Pay button **inside** the iframe, for example `buttonStyle={{ height: "48px" }}`
-- `iframeStyle` — styles the host-page `<iframe>` element
-- `style` — backward-compatible alias for `buttonStyle`; prefer the explicit name in new integrations
+- `height` (`string`, defaults to `"48px"`) — painted button height. CSS length (e.g. `"48px"`).
+- `buttonProps` — native Google Pay button options. Omitted fields keep `"plain"` / `"fill"`. The button fills the iframe; size the mount slot, not the button. Compact: `buttonProps={{ buttonSizeMode: "static", style: { width: "240px" } }}`.
+- `iframeProps` — applied to the host-page `<iframe>` (e.g. `className`, `style`, `id`). Use CSS lengths with units in `style` (`{ borderRadius: "8px" }`). Amos does not ship Tailwind — `className` only works if the host page defines those classes.
 
 ```tsx
 <AmosGooglePayButton
-  fullWidth
-  buttonStyle={{ height: "48px" }}
-  iframeStyle={{ borderRadius: "6px" }}
+  buttonProps={{ buttonType: "donate", buttonBorderType: "no_border" }}
+  iframeProps={{ style: { borderRadius: "8px" } }}
   // ...required props
 />
 ```
-
-**Also accepts:** standard iframe props, minus `src`, `title`, `name`, `role`, `allow`, and `style`.
 
 ### `AmosApplePayButton`
 
 Renders the secure Apple Pay iframe button (express checkout flow). Same required props and callbacks as `AmosGooglePayButton`.
 
-**Optional visual props** use Apple's `<apple-pay-button>` attribute names:
+**Optional visual props:**
 
-- `fullWidth` (`boolean`, defaults to `false`) — fills the component's mount container
-- `buttonstyle` (`"black" | "white" | "white-outline"`, defaults to `"black"`)
-- `type` (`"plain" | "buy" | "set-up" | "donate" | "check-out" | "book" | "subscribe" | "reload" | "add-money" | "top-up" | "order" | "rent" | "support" | "contribute" | "tip"`, defaults to `"plain"`)
-- `locale` (`string`, BCP 47, defaults to `"en-US"`)
-- `buttonStyle` — forwarded to the `<apple-pay-button>` inside the iframe. Apple maps a CSS `height` onto its required custom property.
-- `iframeStyle` — styles the host-page `<iframe>` element
-- `style` — backward-compatible alias for `buttonStyle`
+- `height` (`string`, defaults to `"48px"`) — painted button height. CSS length (e.g. `"48px"`). Apple ignores CSS `height`; Amos maps this for you.
+- `buttonProps` — native `<apple-pay-button>` attributes. Omitted fields keep Apple's `black` / `plain` / `en-US`. The button fills the iframe; size the mount slot, not the button. `style.width` also updates `--apple-pay-button-width` unless you set that custom property yourself.
+- `iframeProps` — host-page `<iframe>` chrome (same as Google Pay).
 
 ```tsx
 <AmosApplePayButton
-  fullWidth
-  buttonstyle="white-outline"
-  type="buy"
-  locale="en-GB"
-  buttonStyle={{ height: "48px" }}
-  iframeStyle={{ borderRadius: "6px" }}
+  buttonProps={{
+    buttonstyle: "white-outline",
+    type: "buy",
+    locale: "en-GB",
+  }}
+  iframeProps={{ style: { borderRadius: "8px" } }}
   // ...required props
 />
 ```
