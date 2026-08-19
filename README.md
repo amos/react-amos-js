@@ -247,58 +247,109 @@ function CheckoutForm() {
 }
 ```
 
-### Rendering Google Pay within your checkout flow
+### Rendering Google Pay and Apple Pay within your checkout flow
 
 ```tsx
 import { useState } from "react";
-import { AmosGooglePayButton } from "@amos.com/react-amos-js";
+import {
+  AmosApplePayButton,
+  AmosGooglePayButton,
+  type ConfirmationResult,
+} from "@amos.com/react-amos-js";
+import type { components } from "@amos.com/node";
 
-function CheckoutGooglePay() {
+async function createPaymentIntentToken({
+  paymentIntentCreateAttributes,
+  customerCreateAttributes,
+}: {
+  paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
+  customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
+}): Promise<string> {
+  const response = await fetch("/api/payment-intents", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      customer: customerCreateAttributes,
+      paymentIntent: paymentIntentCreateAttributes,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to create payment intent.");
+  }
+  const { token } = (await response.json()) as { token: string };
+  return token;
+}
+
+function CheckoutWallets({ renderToken }: { renderToken: string }) {
   const [error, setError] = useState<string | null>(null);
+
+  function handleResult(result: ConfirmationResult) {
+    if (result.status === "succeeded") {
+      console.log("Confirm returned:", result);
+    } else if (result.status === "failed") {
+      setError(result.errorMessage);
+    } else if (result.status === "incomplete") {
+      console.log("Recoverable:", result.reason);
+    }
+  }
 
   return (
     <>
-      <AmosGooglePayButton
-        renderToken="the-render-token-that-you-created-on-dashboard.amos.com"
-        amount="5000" // $50.00 in cents, as a string
-        merchantName="your-user-facing-merchant-name"
-        onInitiatePaymentIntentRequest={async ({
-          paymentIntentCreateAttributes,
-          customerCreateAttributes,
-        }) => {
-          const response = await fetch("/api/payment-intents", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              customer: customerCreateAttributes,
-              paymentIntent: paymentIntentCreateAttributes,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error("Failed to create payment intent.");
-          }
-
-          const { token } = await response.json();
-          return token;
-        }}
-        onResult={(result) => {
-          if (result.status === "succeeded") {
-            console.log("Confirm returned:", result);
-          } else if (result.status === "failed") {
-            console.error("Confirm failed:", result.errorMessage);
-          } else if (result.status === "incomplete") {
-            console.log("Recoverable:", result.reason);
-          }
-        }}
-      />
-      {error ? <p>{error}</p> : null}
+      <div style={{ display: "flex", gap: "12px" }}>
+        <div style={{ flex: "1 1 0", minWidth: 0 }}>
+          <AmosGooglePayButton
+            renderToken={renderToken}
+            amount="5000"
+            merchantName="Example Store"
+            onInitiatePaymentIntentRequest={createPaymentIntentToken}
+            onResult={handleResult}
+          />
+        </div>
+        <div style={{ flex: "1 1 0", minWidth: 0 }}>
+          <AmosApplePayButton
+            renderToken={renderToken}
+            amount="5000"
+            merchantName="Example Store"
+            onInitiatePaymentIntentRequest={createPaymentIntentToken}
+            onResult={handleResult}
+          />
+        </div>
+      </div>
+      {error ? <p role="alert">{error}</p> : null}
     </>
   );
 }
 ```
 
-`AmosApplePayButton` uses the same props and express-checkout callbacks. Drop it in the same place (or alongside Google Pay) with the same `amount`, `merchantName`, and `onInitiatePaymentIntentRequest` wiring. On Safari, the native payment sheet is used; on other browsers, Apple's QR handoff opens in a popup (`pay.apple.com`). While that popup is open, the SDK shows a waiting overlay on your page with a **Cancel payment** button.
+Do not call `validateForm` or `confirmPaymentIntent` — return the embed token from `onInitiatePaymentIntentRequest` and the SDK confirms. Size the mount slot; omitted `buttonProps` keep paint defaults and fill the iframe.
+
+On Safari, Apple Pay uses the native payment sheet. On other browsers, Apple's QR handoff opens in a popup (`pay.apple.com`); while that popup is open, the SDK shows a waiting overlay with **Cancel payment**.
+
+Optional visuals:
+
+```tsx
+<AmosGooglePayButton
+  renderToken={renderToken}
+  amount="5000"
+  merchantName="Example Store"
+  height="48px"
+  buttonProps={{ buttonType: "donate", buttonBorderType: "no_border" }}
+  iframeProps={{ style: { borderRadius: "8px" } }}
+  onInitiatePaymentIntentRequest={createPaymentIntentToken}
+  onResult={handleResult}
+/>
+
+<AmosApplePayButton
+  renderToken={renderToken}
+  amount="5000"
+  merchantName="Example Store"
+  height="48px"
+  buttonProps={{ type: "donate" }}
+  iframeProps={{ style: { borderRadius: "8px" } }}
+  onInitiatePaymentIntentRequest={createPaymentIntentToken}
+  onResult={handleResult}
+/>
+```
 
 ### Saving a payment method with setup intent (credit card)
 
