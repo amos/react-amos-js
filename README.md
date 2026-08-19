@@ -299,7 +299,7 @@ function CheckoutWallets({ renderToken }: { renderToken: string }) {
         <div style={{ flex: "1 1 0", minWidth: 0 }}>
           <AmosGooglePayButton
             renderToken={renderToken}
-            amount="5000"
+            amount="50.00"
             merchantName="Example Store"
             onInitiatePaymentIntentRequest={createPaymentIntentToken}
             onResult={handleResult}
@@ -308,7 +308,7 @@ function CheckoutWallets({ renderToken }: { renderToken: string }) {
         <div style={{ flex: "1 1 0", minWidth: 0 }}>
           <AmosApplePayButton
             renderToken={renderToken}
-            amount="5000"
+            amount="50.00"
             merchantName="Example Store"
             onInitiatePaymentIntentRequest={createPaymentIntentToken}
             onResult={handleResult}
@@ -330,7 +330,7 @@ Optional visuals:
 ```tsx
 <AmosGooglePayButton
   renderToken={renderToken}
-  amount="5000"
+  amount="50.00"
   merchantName="Example Store"
   height="48px"
   buttonProps={{ buttonType: "donate", buttonBorderType: "no_border" }}
@@ -341,7 +341,7 @@ Optional visuals:
 
 <AmosApplePayButton
   renderToken={renderToken}
-  amount="5000"
+  amount="50.00"
   merchantName="Example Store"
   height="48px"
   buttonProps={{ type: "donate" }}
@@ -505,7 +505,7 @@ Renders the secure Google Pay iframe button (express checkout flow).
 **Required props:**
 
 - `renderToken` (`string`)
-- `amount` (`string`)
+- `amount` (`string`) — major-currency decimal string shown in the wallet sheet (e.g. `"50.00"` for $50.00). The iframe converts this to cents in `paymentIntentCreateAttributes.amount`.
 - `merchantName` (`string`)
 - `onInitiatePaymentIntentRequest` (callback receiving `{ paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"]; customerCreateAttributes: components["schemas"]["CreateCustomerInput"] }`, returns `Promise<components["schemas"]["EmbedToken"]["token"]>` — the embed JWT string for confirmation)
 
@@ -572,7 +572,7 @@ Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most int
 - **`ref` / `iframeRef`**: for card and bank forms, pass `ref={iframeRef}` to the form component. The same `iframeRef` must be used when calling `validateForm`, `confirmPaymentIntent`, `confirmSetupIntent`, or `resetForm`. The component forwards the ref to the inner iframe.
 - **`onResult` is not settlement proof**: `onResult` tells you when to stop waiting (e.g. dismiss a spinner). Verify payment or setup success on your backend via webhooks. On `status: "incomplete"`, unlock your UI — the customer can fix fields in the iframe and retry. Use `result.reason` (`"field_errors"` or `"validation_failed"`) to distinguish recoverable states.
 - **Same components for payment vs setup intents**: `AmosCreditCardPaymentMethodForm` and `AmosBankAccountPaymentMethodForm` support both payment intents and setup intents. The flow differs only by which server call you make and which confirmation function you use (`confirmPaymentIntent` vs `confirmSetupIntent`). Handle both payment and setup outcomes via `onResult`.
-- **Amount format**: for `AmosGooglePayButton` and `AmosApplePayButton`, `amount` is a string (e.g. `"5000"` for $50.00). For `components["schemas"]["CreatePaymentIntentInput"]` on the server, `amount` is a number in cents (e.g. `5000`).
+- **Amount format**: for `AmosGooglePayButton` and `AmosApplePayButton`, `amount` is a major-currency decimal string (e.g. `"50.00"` for $50.00). For `components["schemas"]["CreatePaymentIntentInput"]` on the server (card/bank create, and the object the wallet iframe sends to `onInitiatePaymentIntentRequest`), `amount` is a number in cents (e.g. `5000`).
 - **Apple Pay waiting overlay**: on browsers where Apple's QR handoff opens in a popup (non-Safari), `AmosApplePayButton` shows a fixed full-viewport overlay on the host page until payment completes, the popup closes, or the user clicks **Cancel payment**. Avoid stacking other fixed UI above it.
 - **Going framework-free**: if you need to use Amos outside of React (vanilla JS, another framework, etc.), use [`@amos.com/amos-js`](../amos-js) directly.
 

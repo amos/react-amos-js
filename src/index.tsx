@@ -295,6 +295,11 @@ export function AmosBankAccountPaymentMethodForm({
 type AmosGooglePayButtonProps = {
   ref?: ForwardedIframeRef;
   renderToken: string;
+  /**
+   * Major-currency decimal string shown in the Google Pay sheet
+   * (e.g. `"50.00"` for $50.00). Converted to cents in
+   * `paymentIntentCreateAttributes.amount`.
+   */
   amount: string;
   merchantName: string;
   /**
@@ -365,6 +370,11 @@ export function AmosGooglePayButton({
 type AmosApplePayButtonProps = {
   ref?: ForwardedIframeRef;
   renderToken: string;
+  /**
+   * Major-currency decimal string shown in the Apple Pay sheet
+   * (e.g. `"50.00"` for $50.00). Converted to cents in
+   * `paymentIntentCreateAttributes.amount`.
+   */
   amount: string;
   merchantName: string;
   /**

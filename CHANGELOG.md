@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.9.15
+
+### Patch Changes
+
+- Improve comments
+
 ## 0.9.14
 
 ### Patch Changes
