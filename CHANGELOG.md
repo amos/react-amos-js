@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.9.17
+
+### Patch Changes
+
+- Support Plaid
+
 ## 0.9.16
 
 ### Patch Changes

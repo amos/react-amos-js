@@ -82,7 +82,7 @@ In short, your app orchestrates the payment flow, while sensitive payment data s
 
 ## Appearance
 
-Card and bank components accept an optional `appearance` prop that controls the look of the iframe UI. It contains a `themeVariables` object whose keys are CSS custom-property names and whose values are strings, and an optional `labels` setting for field label placement. You can update this prop after page load to update the iframe appearance. Wallet buttons do not take `appearance`.
+Card and bank components accept an optional `appearance` prop that controls the look of the iframe UI, and of the parent-page **Connect bank account** button when ACH verification is required. It contains a `themeVariables` object whose keys are CSS custom-property names and whose values are strings, and an optional `labels` setting for field label placement. You can update this prop after page load to update the iframe appearance. Wallet buttons do not take `appearance`.
 
 ```tsx
 <AmosCreditCardPaymentMethodForm
@@ -155,7 +155,7 @@ Radio groups (e.g. account type) always use an above-style group label regardles
 | `--control-gap`                    | Horizontal gap between side-by-side controls             | `0.5rem`                        |
 | `--error-font-size`                | Font size of field-level error messages                  | `0.875rem`                      |
 | `--radio-size`                     | Size of radio buttons on the bank account form           | `1rem`                          |
-| `--ring`                           | Focus ring and outline color                             | `oklch(0.708 0 0)`              |
+| `--ring`                           | Focus ring and outline color (inputs, Connect button)    | `oklch(0.708 0 0)`              |
 | `--ring-width`                     | Focus ring width                                         | `3px`                           |
 | `--radius`                         | Base border-radius (derived into sm/md/lg/xl)            | `0.625rem`                      |
 
@@ -492,9 +492,27 @@ Renders the secure credit card iframe form. A field-shaped skeleton is shown imm
 
 Renders the secure bank account iframe form. A field-shaped skeleton is shown immediately and replaced by the iframe once appearance is applied.
 
+When the charge meets the merchant’s ACH verification threshold, the SDK hides the routing/account iframe and renders a **Connect bank account** button in the parent page. The button follows the same outline/focus defaults as Amos UI (`--ring`, `--border`, `--radius`, `--input-height`, …): it inherits those CSS variables from the host page when present, and `appearance.themeVariables` overrides them the same way as the iframe. Clicking it asks the iframe to mint a Plaid Link token, then opens [Plaid Link](https://plaid.com/docs/link/web/). Hosts do not proxy Pay API (`GET /merchants`, `POST /plaid_link_tokens`); embed does that with `PAY_API_KEY`. Do not put Plaid secrets in the browser.
+
 **Required props:** same as `AmosCreditCardPaymentMethodForm` — `renderToken`, `onResult`.
 
-**Optional props:** same as `AmosCreditCardPaymentMethodForm` — `appearance`, `billingAddressRequirement`, `onValidityChange`.
+**Optional props:** same as `AmosCreditCardPaymentMethodForm` — `appearance`, `billingAddressRequirement`, `onValidityChange` (`isValid` is also true after Plaid Link returns credentials), plus:
+
+- `amount` (`string`, major-currency decimal, e.g. `"50.00"`) — same format as Google Pay / Apple Pay. Compared to the threshold the iframe fetches (cents). Omit to always Connect once a threshold exists (setup-intent save, or when you do not know the charge yet). Pass a new `amount` when the customer changes the charge if small charges should stay on the manual form.
+
+Compare locally once the iframe posts `ACH_THRESHOLD`: Plaid when the amount (converted to cents) is `>= achThreshold`, or when `amount` is omitted and a threshold is set. No threshold (or `null`) keeps the manual bank form. If `amount` later drops under the threshold, Plaid credentials are dropped and the iframe form is shown again.
+
+```tsx
+<AmosBankAccountPaymentMethodForm
+  renderToken={renderToken}
+  amount="50.00" // omit to always Connect
+  onResult={onResult}
+/>
+```
+
+`validateForm` / `confirmPaymentIntent` / `confirmSetupIntent` stay iframe-based. When Plaid succeeded, confirm sends `payment_method.plaid` (`public_token`, `account_id`) and does not require typed account numbers.
+
+**CSP:** the parent page must allow Plaid’s script and frames, for example `script-src https://cdn.plaid.com` and `frame-src https://cdn.plaid.com https://*.plaid.com`. Amos never loads `PLAID_SECRET` / `PLAID_CLIENT_ID` in the SDK or embed iframe.
 
 **Also accepts:** standard iframe props.
 
@@ -572,7 +590,8 @@ Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most int
 - **`ref` / `iframeRef`**: for card and bank forms, pass `ref={iframeRef}` to the form component. The same `iframeRef` must be used when calling `validateForm`, `confirmPaymentIntent`, `confirmSetupIntent`, or `resetForm`. The component forwards the ref to the inner iframe.
 - **`onResult` is not settlement proof**: `onResult` tells you when to stop waiting (e.g. dismiss a spinner). Verify payment or setup success on your backend via webhooks. On `status: "incomplete"`, unlock your UI — the customer can fix fields in the iframe and retry. Use `result.reason` (`"field_errors"` or `"validation_failed"`) to distinguish recoverable states.
 - **Same components for payment vs setup intents**: `AmosCreditCardPaymentMethodForm` and `AmosBankAccountPaymentMethodForm` support both payment intents and setup intents. The flow differs only by which server call you make and which confirmation function you use (`confirmPaymentIntent` vs `confirmSetupIntent`). Handle both payment and setup outcomes via `onResult`.
-- **Amount format**: for `AmosGooglePayButton` and `AmosApplePayButton`, `amount` is a major-currency decimal string (e.g. `"50.00"` for $50.00). For `components["schemas"]["CreatePaymentIntentInput"]` on the server (card/bank create, and the object the wallet iframe sends to `onInitiatePaymentIntentRequest`), `amount` is a number in cents (e.g. `5000`).
+- **Amount format**: for `AmosGooglePayButton`, `AmosApplePayButton`, and `AmosBankAccountPaymentMethodForm`, `amount` is a major-currency decimal string (e.g. `"50.00"` for $50.00). For `components["schemas"]["CreatePaymentIntentInput"]` on the server (card/bank create, and the object the wallet iframe sends to `onInitiatePaymentIntentRequest`), `amount` is a number in cents (e.g. `5000`).
+- **Plaid Link (ACH verification)**: load `cdn.plaid.com` from the **parent** document (see CSP on `AmosBankAccountPaymentMethodForm`). Merchants do not proxy Pay API; the bank iframe fetches the ACH threshold and mints link tokens. Confirm still goes through the bank iframe so Amos can attach `plaid` to the payment method.
 - **Apple Pay waiting overlay**: on browsers where Apple's QR handoff opens in a popup (non-Safari), `AmosApplePayButton` shows a fixed full-viewport overlay on the host page until payment completes, the popup closes, or the user clicks **Cancel payment**. Avoid stacking other fixed UI above it.
 - **Going framework-free**: if you need to use Amos outside of React (vanilla JS, another framework, etc.), use [`@amos.com/amos-js`](../amos-js) directly.
 

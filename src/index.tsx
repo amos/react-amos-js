@@ -306,10 +306,19 @@ type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
   onResult: (result: ConfirmationResult) => void;
   /**
    * Called when form validity changes. `isValid` is true when all
-   * required fields are present and valid. Does not include PCI data.
+   * required fields are present and valid, or when Plaid Link has
+   * returned credentials. Does not include PCI data.
    */
   onValidityChange?: (event: { isValid: boolean }) => void;
   billingAddressRequirement?: BillingAddressRequirement;
+  /**
+   * Charge amount as a major-currency decimal string (e.g. `"50.00"`
+   * for $50.00), the same format as Google Pay / Apple Pay. Compared
+   * to the merchant ACH threshold fetched by the iframe. Omit for
+   * setup intents or when the charge is unknown — if a threshold is
+   * set, Plaid is required.
+   */
+  amount?: string;
 };
 
 export function AmosBankAccountPaymentMethodForm({
@@ -319,6 +328,7 @@ export function AmosBankAccountPaymentMethodForm({
   onResult,
   onValidityChange,
   billingAddressRequirement = "country",
+  amount,
   style,
   ...rest
 }: AmosBankAccountPaymentMethodFormProps) {
@@ -332,6 +342,7 @@ export function AmosBankAccountPaymentMethodForm({
       renderToken,
       appearance,
       billingAddressRequirement,
+      amount,
       onResult,
       onValidityChange,
     },
@@ -340,6 +351,7 @@ export function AmosBankAccountPaymentMethodForm({
     updateDeps: [
       appearance,
       billingAddressRequirement,
+      amount,
       onResult,
       onValidityChange,
     ],
