@@ -336,9 +336,21 @@ type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
    * `"0"`, which is typically under the threshold so Connect / Plaid
    * stays hidden until the host passes a real charge.
    *
+   * Ignored when {@link AmosBankAccountPaymentMethodFormProps.intent} is
+   * `"setup"`.
+   *
    * @default "0"
    */
   amount?: string;
+  /**
+   * `"setup"` saves a bank account for later charges and always shows
+   * Connect / Plaid (no merchant threshold lookup). `"payment"`
+   * compares {@link AmosBankAccountPaymentMethodFormProps.amount} to the
+   * merchant ACH threshold.
+   *
+   * @default "payment"
+   */
+  intent?: "payment" | "setup";
 };
 
 export function AmosBankAccountPaymentMethodForm({
@@ -349,6 +361,7 @@ export function AmosBankAccountPaymentMethodForm({
   onValidityChange,
   billingAddressRequirement = "country",
   amount = "0",
+  intent = "payment",
   style,
   ...rest
 }: AmosBankAccountPaymentMethodFormProps) {
@@ -363,15 +376,17 @@ export function AmosBankAccountPaymentMethodForm({
       appearance,
       billingAddressRequirement,
       amount,
+      intent,
       onResult,
       onValidityChange,
     },
-    remountDeps: [renderToken, billingAddressRequirement],
+    remountDeps: [renderToken, billingAddressRequirement, intent],
     iframePassthrough: { style, ...rest },
     updateDeps: [
       appearance,
       billingAddressRequirement,
       amount,
+      intent,
       onResult,
       onValidityChange,
     ],

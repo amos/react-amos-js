@@ -64,7 +64,7 @@ Setup intents are used to save payment methods for future use (e.g. recurring pa
 - On the client, call `confirmSetupIntent({ iframeRef, token })` instead of `confirmPaymentIntent({ iframeRef, token })`.
 - The same `onResult` callback is used; succeeded setup intents arrive as `{ status: "succeeded", intent: "setup", setupIntent }`.
 
-The same `AmosCreditCardPaymentMethodForm` / `AmosBankAccountPaymentMethodForm` components support both payment intents and setup intents — they are differentiated by which confirmation function you call.
+The same `AmosCreditCardPaymentMethodForm` / `AmosBankAccountPaymentMethodForm` components support both payment intents and setup intents — they are differentiated by which confirmation function you call. For bank setup, pass `intent="setup"` so Connect / Plaid is always shown (no merchant ACH threshold lookup).
 
 ## Understanding PCI DSS compliance requirements
 
@@ -497,16 +497,27 @@ When the charge meets the merchant’s ACH verification threshold, the SDK hides
 
 **Required props:** same as `AmosCreditCardPaymentMethodForm` — `renderToken`, `onResult` — plus:
 
-- `amount` (`string`, major-currency decimal, e.g. `"50.00"`, defaults to `"0"`) — same format as Google Pay / Apple Pay. Compared to the threshold the iframe fetches (cents). Pass `"0"` (the default) on open-amount forms until the customer enters a charge — 0 is typically under the threshold, so Connect stays hidden. Pass a new `amount` when the customer changes the charge. For setup intents, pass an amount at or above the merchant ACH threshold (the expected future charge) to show Connect.
+- `amount` (`string`, major-currency decimal, e.g. `"50.00"`, defaults to `"0"`) — same format as Google Pay / Apple Pay. Compared to the threshold the iframe fetches (cents). Pass `"0"` (the default) on open-amount forms until the customer enters a charge — 0 is typically under the threshold, so Connect stays hidden. Pass a new `amount` when the customer changes the charge.
+- `intent` (`"payment" | "setup"`, defaults to `"payment"`) — `"setup"` always shows Connect / Plaid (no merchant ACH threshold lookup), unless the render token disables verification. Use this when saving a bank account for later charges.
 
 **Optional props:** same as `AmosCreditCardPaymentMethodForm` — `appearance`, `billingAddressRequirement`, `onValidityChange` (`isValid` is also true after Plaid Link returns credentials).
 
-Compare locally once the iframe posts `ACH_THRESHOLD`: Plaid when the amount (converted to cents, default `0`) is `>= achThreshold`. No threshold (or `null`) keeps the manual bank form. If `amount` later drops under the threshold, Plaid credentials are dropped and the iframe form is shown again.
+Compare locally once the iframe posts `ACH_THRESHOLD`: Plaid when `requireVerification` is true (setup intents), or when the amount (converted to cents, default `0`) is `>= achThreshold`. No threshold (or `null`) keeps the manual bank form. Render tokens with Plaid verification disabled never require Connect. If `amount` later drops under the threshold, Plaid credentials are dropped and the iframe form is shown again.
 
 ```tsx
 <AmosBankAccountPaymentMethodForm
   renderToken={renderToken}
   amount="50.00" // defaults to "0" (manual form until the charge meets the threshold)
+  onResult={onResult}
+/>
+```
+
+Setup (always Connect, no merchant lookup):
+
+```tsx
+<AmosBankAccountPaymentMethodForm
+  renderToken={renderToken}
+  intent="setup"
   onResult={onResult}
 />
 ```
@@ -592,7 +603,7 @@ Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most int
 - **`onResult` is not settlement proof**: `onResult` tells you when to stop waiting (e.g. dismiss a spinner). Verify payment or setup success on your backend via webhooks. On `status: "incomplete"`, unlock your UI — the customer can fix fields in the iframe and retry. Use `result.reason` (`"field_errors"` or `"validation_failed"`) to distinguish recoverable states.
 - **Same components for payment vs setup intents**: `AmosCreditCardPaymentMethodForm` and `AmosBankAccountPaymentMethodForm` support both payment intents and setup intents. The flow differs only by which server call you make and which confirmation function you use (`confirmPaymentIntent` vs `confirmSetupIntent`). Handle both payment and setup outcomes via `onResult`.
 - **Amount format**: for `AmosGooglePayButton`, `AmosApplePayButton`, and `AmosBankAccountPaymentMethodForm`, `amount` is a major-currency decimal string (e.g. `"50.00"` for $50.00). For `components["schemas"]["CreatePaymentIntentInput"]` on the server (card/bank create, and the object the wallet iframe sends to `onInitiatePaymentIntentRequest`), `amount` is a number in cents (e.g. `5000`).
-- **Plaid Link (ACH verification)**: load `cdn.plaid.com` from the **parent** document (see CSP on `AmosBankAccountPaymentMethodForm`). Merchants do not proxy Pay API; the bank iframe fetches the ACH threshold and mints link tokens. Confirm still goes through the bank iframe so Amos can attach `plaid` to the payment method.
+- **Plaid Link (ACH verification)**: load `cdn.plaid.com` from the **parent** document (see CSP on `AmosBankAccountPaymentMethodForm`). Merchants do not proxy Pay API; the bank iframe fetches the ACH threshold for payment intents and mints link tokens. Setup intents skip the merchant lookup and always require Plaid unless the render token disables verification. Confirm still goes through the bank iframe so Amos can attach `plaid` to the payment method.
 - **Apple Pay waiting overlay**: on browsers where Apple's QR handoff opens in a popup (non-Safari), `AmosApplePayButton` shows a fixed full-viewport overlay on the host page until payment completes, the popup closes, or the user clicks **Cancel payment**. Avoid stacking other fixed UI above it.
 - **Going framework-free**: if you need to use Amos outside of React (vanilla JS, another framework, etc.), use [`@amos.com/amos-js`](../amos-js) directly.
 
