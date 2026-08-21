@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.10.0
+
+### Minor Changes
+
+- Add onCardBrandChanged to AmosCreditCardPaymentMethodForm for host-side card brand updates.
+
 ## 0.9.17
 
 ### Patch Changes

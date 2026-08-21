@@ -253,6 +253,21 @@ type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
    * required fields are present and valid. Does not include PCI data.
    */
   onValidityChange?: (event: { isValid: boolean }) => void;
+  /**
+   * Called when the detected card brand changes. `brand` is the matched
+   * network, or `null` when the field is empty or the digits do not
+   * match a known brand. Does not include PCI data.
+   */
+  onCardBrandChanged?: (event: {
+    brand:
+      | "visa"
+      | "mastercard"
+      | "amex"
+      | "discover"
+      | "diners"
+      | "jcb"
+      | null;
+  }) => void;
   additionalFields?: CreditCardAdditionalFields;
   billingAddressRequirement?: BillingAddressRequirement;
 };
@@ -263,6 +278,7 @@ export function AmosCreditCardPaymentMethodForm({
   appearance,
   onResult,
   onValidityChange,
+  onCardBrandChanged,
   additionalFields = { cardholderName: false },
   billingAddressRequirement = "country",
   style,
@@ -281,6 +297,7 @@ export function AmosCreditCardPaymentMethodForm({
       billingAddressRequirement,
       onResult,
       onValidityChange,
+      onCardBrandChanged,
     },
     remountDeps: [
       renderToken,
@@ -294,6 +311,7 @@ export function AmosCreditCardPaymentMethodForm({
       billingAddressRequirement,
       onResult,
       onValidityChange,
+      onCardBrandChanged,
     ],
   });
 
