@@ -332,9 +332,11 @@ type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
   /**
    * Charge amount as a major-currency decimal string (e.g. `"50.00"`
    * for $50.00), the same format as Google Pay / Apple Pay. Compared
-   * to the merchant ACH threshold fetched by the iframe. Omit for
-   * setup intents or when the charge is unknown — if a threshold is
-   * set, Plaid is required.
+   * to the merchant ACH threshold fetched by the iframe. Defaults to
+   * `"0"`, which is typically under the threshold so Connect / Plaid
+   * stays hidden until the host passes a real charge.
+   *
+   * @default "0"
    */
   amount?: string;
 };
@@ -346,7 +348,7 @@ export function AmosBankAccountPaymentMethodForm({
   onResult,
   onValidityChange,
   billingAddressRequirement = "country",
-  amount,
+  amount = "0",
   style,
   ...rest
 }: AmosBankAccountPaymentMethodFormProps) {

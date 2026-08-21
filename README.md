@@ -495,18 +495,18 @@ Renders the secure bank account iframe form. A field-shaped skeleton is shown im
 
 When the charge meets the merchant’s ACH verification threshold, the SDK hides the routing/account iframe and renders a **Connect bank account** button in the parent page. The button follows the same outline/focus defaults as Amos UI (`--ring`, `--border`, `--radius`, `--input-height`, …): it inherits those CSS variables from the host page when present, and `appearance.themeVariables` overrides them the same way as the iframe. Clicking it asks the iframe to mint a Plaid Link token, then opens [Plaid Link](https://plaid.com/docs/link/web/). Hosts do not proxy Pay API (`GET /merchants`, `POST /plaid_link_tokens`); embed does that with `PAY_API_KEY`. Do not put Plaid secrets in the browser.
 
-**Required props:** same as `AmosCreditCardPaymentMethodForm` — `renderToken`, `onResult`.
+**Required props:** same as `AmosCreditCardPaymentMethodForm` — `renderToken`, `onResult` — plus:
 
-**Optional props:** same as `AmosCreditCardPaymentMethodForm` — `appearance`, `billingAddressRequirement`, `onValidityChange` (`isValid` is also true after Plaid Link returns credentials), plus:
+- `amount` (`string`, major-currency decimal, e.g. `"50.00"`, defaults to `"0"`) — same format as Google Pay / Apple Pay. Compared to the threshold the iframe fetches (cents). Pass `"0"` (the default) on open-amount forms until the customer enters a charge — 0 is typically under the threshold, so Connect stays hidden. Pass a new `amount` when the customer changes the charge. For setup intents, pass an amount at or above the merchant ACH threshold (the expected future charge) to show Connect.
 
-- `amount` (`string`, major-currency decimal, e.g. `"50.00"`) — same format as Google Pay / Apple Pay. Compared to the threshold the iframe fetches (cents). Omit to always Connect once a threshold exists (setup-intent save, or when you do not know the charge yet). Pass a new `amount` when the customer changes the charge if small charges should stay on the manual form.
+**Optional props:** same as `AmosCreditCardPaymentMethodForm` — `appearance`, `billingAddressRequirement`, `onValidityChange` (`isValid` is also true after Plaid Link returns credentials).
 
-Compare locally once the iframe posts `ACH_THRESHOLD`: Plaid when the amount (converted to cents) is `>= achThreshold`, or when `amount` is omitted and a threshold is set. No threshold (or `null`) keeps the manual bank form. If `amount` later drops under the threshold, Plaid credentials are dropped and the iframe form is shown again.
+Compare locally once the iframe posts `ACH_THRESHOLD`: Plaid when the amount (converted to cents, default `0`) is `>= achThreshold`. No threshold (or `null`) keeps the manual bank form. If `amount` later drops under the threshold, Plaid credentials are dropped and the iframe form is shown again.
 
 ```tsx
 <AmosBankAccountPaymentMethodForm
   renderToken={renderToken}
-  amount="50.00" // omit to always Connect
+  amount="50.00" // defaults to "0" (manual form until the charge meets the threshold)
   onResult={onResult}
 />
 ```
