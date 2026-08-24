@@ -3,12 +3,15 @@
 import {
   type Appearance,
   type ApplePayButtonElementProps,
+  confirmPayment as amosConfirmPayment,
   confirmPaymentIntent as amosConfirmPaymentIntent,
+  confirmSetup as amosConfirmSetup,
   confirmSetupIntent as amosConfirmSetupIntent,
   resetForm as amosResetForm,
   validateForm as amosValidateForm,
   type BillingAddressRequirement,
   type ConfirmationResult,
+  type ConfirmResult,
   type CreditCardAdditionalFields,
   ensureSkeletonStyles,
   type GooglePayButtonElementProps,
@@ -60,13 +63,16 @@ export function validateForm({
  * Pass the embed JWT (`token`) returned by your server's
  * `POST /payment_intents` call.
  */
-export function confirmPaymentIntent({
+export function confirmPayment({
   iframeRef,
   token,
 }: {
   iframeRef: IframeRef;
-} & Pick<components["schemas"]["EmbedToken"], "token">): void {
-  amosConfirmPaymentIntent({ iframe: resolveIframe(iframeRef), token });
+} & Pick<
+  components["schemas"]["EmbedToken"],
+  "token"
+>): Promise<ConfirmResult> {
+  return amosConfirmPayment({ iframe: resolveIframe(iframeRef), token });
 }
 
 /**
@@ -76,13 +82,46 @@ export function confirmPaymentIntent({
  * Pass the embed JWT (`token`) returned by your server's
  * `POST /setup_intents` call.
  */
+export function confirmSetup({
+  iframeRef,
+  token,
+}: {
+  iframeRef: IframeRef;
+} & Pick<
+  components["schemas"]["EmbedToken"],
+  "token"
+>): Promise<ConfirmResult> {
+  return amosConfirmSetup({ iframe: resolveIframe(iframeRef), token });
+}
+
+/**
+ * @deprecated Use {@link confirmPayment}.
+ */
+export function confirmPaymentIntent({
+  iframeRef,
+  token,
+}: {
+  iframeRef: IframeRef;
+} & Pick<
+  components["schemas"]["EmbedToken"],
+  "token"
+>): Promise<ConfirmResult> {
+  return amosConfirmPaymentIntent({ iframe: resolveIframe(iframeRef), token });
+}
+
+/**
+ * @deprecated Use {@link confirmSetup}.
+ */
 export function confirmSetupIntent({
   iframeRef,
   token,
 }: {
   iframeRef: IframeRef;
-} & Pick<components["schemas"]["EmbedToken"], "token">): void {
-  amosConfirmSetupIntent({ iframe: resolveIframe(iframeRef), token });
+} & Pick<
+  components["schemas"]["EmbedToken"],
+  "token"
+>): Promise<ConfirmResult> {
+  return amosConfirmSetupIntent({ iframe: resolveIframe(iframeRef), token });
 }
 
 /**
@@ -247,7 +286,10 @@ function WalletButtonSlot({
 type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
   renderToken: string;
   appearance?: Appearance;
-  onResult: (result: ConfirmationResult) => void;
+  /**
+   * @deprecated Prefer `await confirmPayment()` / `await confirmSetup()`.
+   */
+  onResult?: (result: ConfirmationResult) => void;
   /**
    * Called when form validity changes. `isValid` is true when all
    * required fields are present and valid. Does not include PCI data.
@@ -321,7 +363,10 @@ export function AmosCreditCardPaymentMethodForm({
 type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
   renderToken: string;
   appearance?: Appearance;
-  onResult: (result: ConfirmationResult) => void;
+  /**
+   * @deprecated Prefer `await confirmPayment()` / `await confirmSetup()`.
+   */
+  onResult?: (result: ConfirmationResult) => void;
   /**
    * Called when form validity changes. `isValid` is true when all
    * required fields are present and valid, or when Plaid Link has
@@ -419,14 +464,19 @@ type AmosGooglePayButtonProps = {
   buttonProps?: GooglePayButtonElementProps;
   /** Props applied to the host-page `<iframe>` element. */
   iframeProps?: IframePassthroughProps;
-  onInitiatePaymentIntentRequest: ({
+  /**
+   * Called when the buyer authorizes in the Google Pay sheet. Create a
+   * payment intent on your server, then `await confirmPayment(token)`.
+   */
+  onConfirm: ({
     paymentIntentCreateAttributes,
     customerCreateAttributes,
+    confirmPayment,
   }: {
     paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
     customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
-  }) => Promise<components["schemas"]["EmbedToken"]["token"]>;
-  onResult: (result: ConfirmationResult) => void;
+    confirmPayment: (token: string) => Promise<ConfirmResult>;
+  }) => Promise<ConfirmResult>;
 };
 
 /**
@@ -442,8 +492,7 @@ export function AmosGooglePayButton({
   height = "48px",
   buttonProps,
   iframeProps,
-  onInitiatePaymentIntentRequest,
-  onResult,
+  onConfirm,
 }: AmosGooglePayButtonProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const borderRadius = resolveWalletButtonSkeletonBorderRadius({
@@ -461,19 +510,11 @@ export function AmosGooglePayButton({
       merchantName,
       height,
       buttonProps,
-      onInitiatePaymentIntentRequest,
-      onResult,
+      onConfirm,
     },
     remountDeps: [renderToken],
     iframePassthrough: iframeProps ?? {},
-    updateDeps: [
-      amount,
-      merchantName,
-      height,
-      buttonProps,
-      onInitiatePaymentIntentRequest,
-      onResult,
-    ],
+    updateDeps: [amount, merchantName, height, buttonProps, onConfirm],
   });
 
   return (
@@ -509,14 +550,19 @@ type AmosApplePayButtonProps = {
   buttonProps?: ApplePayButtonElementProps;
   /** Props applied to the host-page `<iframe>` element. */
   iframeProps?: IframePassthroughProps;
-  onInitiatePaymentIntentRequest: ({
+  /**
+   * Called when the buyer authorizes in the Apple Pay sheet. Create a
+   * payment intent on your server, then `await confirmPayment(token)`.
+   */
+  onConfirm: ({
     paymentIntentCreateAttributes,
     customerCreateAttributes,
+    confirmPayment,
   }: {
     paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
     customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
-  }) => Promise<components["schemas"]["EmbedToken"]["token"]>;
-  onResult: (result: ConfirmationResult) => void;
+    confirmPayment: (token: string) => Promise<ConfirmResult>;
+  }) => Promise<ConfirmResult>;
 };
 
 /**
@@ -532,8 +578,7 @@ export function AmosApplePayButton({
   height = "48px",
   buttonProps,
   iframeProps,
-  onInitiatePaymentIntentRequest,
-  onResult,
+  onConfirm,
 }: AmosApplePayButtonProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const borderRadius = resolveWalletButtonSkeletonBorderRadius({
@@ -551,19 +596,11 @@ export function AmosApplePayButton({
       merchantName,
       height,
       buttonProps,
-      onInitiatePaymentIntentRequest,
-      onResult,
+      onConfirm,
     },
     remountDeps: [renderToken],
     iframePassthrough: iframeProps ?? {},
-    updateDeps: [
-      amount,
-      merchantName,
-      height,
-      buttonProps,
-      onInitiatePaymentIntentRequest,
-      onResult,
-    ],
+    updateDeps: [amount, merchantName, height, buttonProps, onConfirm],
   });
 
   return (
