@@ -16,7 +16,7 @@ npm install @amos.com/react-amos-js @amos.com/node
 
 - React components for the iframe payment method forms: `AmosCreditCardPaymentMethodForm`, `AmosBankAccountPaymentMethodForm`, `AmosGooglePayButton`, `AmosApplePayButton`.
 - React-flavoured iframe message helpers that accept a React `ref`: `validateForm({ iframeRef })`, `confirmPayment({ iframeRef, token })`, `confirmSetup({ iframeRef, token })`, `resetForm({ iframeRef })`.
-- Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `formatGooglePayPaymentData`, `resetForm`, `ConfirmResult`, `ConfirmationResult`, `ConfirmationIncompleteReason`, `FormattedGooglePayPaymentData`, `Appearance`, `Message`, etc.
+- Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `formatGooglePayPaymentData`, `resetForm`, `ConfirmResult`, `FormattedGooglePayPaymentData`, `Appearance`, `Message`, etc.
 
 > **Note:** `@amos.com/react-amos-js` is the client-side half of the Amos integration. For end-to-end payment processing you also need `@amos.com/node` on your server (creating payment intents, handling webhooks, etc.). The same `@amos.com/node` package is listed as a peer dependency so you can import its OpenAPI types in client-side TypeScript code.
 
@@ -43,8 +43,8 @@ The following flow is for credit card and bank account payment method types only
 3. **User clicks "Pay now" button**: call `validateForm({ iframeRef })`, which returns `Promise<true>` if the embedded form is valid and `Promise<false>` otherwise.
 4. **Create payment intent on your server**: use your server-side Amos client to call `POST /payment_intents`. You may also associate this payment intent with a new or existing customer via `POST /customers`. This must be server-side because it uses your private API key.
 5. **Return the payment intent token to the browser**: your backend responds with the embed token (`components["schemas"]["EmbedToken"]`) needed for confirmation.
-6. **Confirm the payment intent from the client**: `await confirmPayment({ iframeRef, token })`. Deprecated alias: `confirmPaymentIntent`.
-7. **Handle UX**: show the user a "processing" state while awaiting `confirmPayment`. Do not treat `{ status: "succeeded" }` as settlement proof — verify payment success on your backend via webhooks. Recoverable field errors stay in the iframe; `confirmPayment` still resolves `{ status: "failed" }`. Legacy hosts can keep optional `onResult`.
+6. **Confirm the payment intent from the client**: `await confirmPayment({ iframeRef, token })`.
+7. **Handle UX**: show the user a "processing" state while awaiting `confirmPayment`. Do not treat `{ status: "succeeded" }` as settlement proof — verify payment success on your backend via webhooks. Recoverable field errors stay in the iframe; `confirmPayment` still resolves `{ status: "failed" }`.
 
 ### Google Pay & Apple Pay
 
@@ -61,7 +61,7 @@ The key differences between the express and non-express payment flows are:
 Setup intents are used to save payment methods for future use (e.g. recurring payments, subscriptions) without charging the customer immediately. The flow is identical to a payment intent, except:
 
 - On the server, call `POST /setup_intents` instead of `POST /payment_intents`.
-- On the client, `await confirmSetup({ iframeRef, token })` instead of `confirmPayment({ iframeRef, token })`. Deprecated alias: `confirmSetupIntent`.
+- On the client, `await confirmSetup({ iframeRef, token })` instead of `confirmPayment({ iframeRef, token })`.
 - Both resolve `{ status: "succeeded" | "failed" }`.
 
 The same `AmosCreditCardPaymentMethodForm` / `AmosBankAccountPaymentMethodForm` components support both payment intents and setup intents — they are differentiated by which confirmation function you call. For bank setup, pass `intent="setup"` so Connect / Plaid is always shown (no merchant ACH threshold lookup).
@@ -433,7 +433,7 @@ Validates the embedded card/bank iframe form before payment confirmation.
 
 ### `confirmPayment({ iframeRef, token })`
 
-Confirms a payment intent in the embedded iframe flow. Resolves `{ status: "succeeded" }` or `{ status: "failed" }`. Deprecated alias: `confirmPaymentIntent`.
+Confirms a payment intent in the embedded iframe flow. Resolves `{ status: "succeeded" }` or `{ status: "failed" }`.
 
 **Parameters:**
 
@@ -444,7 +444,7 @@ Confirms a payment intent in the embedded iframe flow. Resolves `{ status: "succ
 
 ### `confirmSetup({ iframeRef, token })`
 
-Confirms a setup intent in the embedded iframe flow. Use this when saving a payment method for future use. Deprecated alias: `confirmSetupIntent`.
+Confirms a setup intent in the embedded iframe flow. Use this when saving a payment method for future use.
 
 **Parameters:**
 
@@ -455,7 +455,7 @@ Confirms a setup intent in the embedded iframe flow. Use this when saving a paym
 
 ### `resetForm({ iframeRef })`
 
-Clears all field values and API errors in the embedded card/bank iframe form. Call after a failed or incomplete confirm when the customer wants to try again (for example, after a successful payment when starting a new one).
+Clears all field values and API errors in the embedded card/bank iframe form. Call after a failed confirm when the customer wants to try again (for example, after a successful payment when starting a new one).
 
 **Parameters:**
 
@@ -477,7 +477,6 @@ Renders the secure credit card iframe form. A field-shaped skeleton is shown imm
 
 - `additionalFields` (`{ cardholderName: boolean }`) — set `additionalFields={{ cardholderName: true }}` to render the cardholder name field in the iframe (`false` by default)
 - `billingAddressRequirement` (`"country" | "full"`, defaults to `"country"`) — how much billing address the iframe collects. `country` collects country / region and, for CA / PR / GB / US, a postal code (labeled ZIP for the United States). `full` shows a full street address form with Smarty autocomplete.
-- `onResult` (`(result: ConfirmationResult) => void`) — **deprecated.** Prefer `await confirmPayment()` / `await confirmSetup()`. Still fired for existing hosts (`succeeded`, `failed`, or `incomplete` with `reason`). Not settlement proof; verify via webhooks.
 - `onValidityChange` (`(event: { isValid: boolean }) => void`) — called when form validity changes. `isValid` is true when all required fields are present and valid. Does not include PCI data. Use this to enable or disable your checkout button.
 - `onCardBrandChanged` (`(event: { brand: CardBrand | null }) => void`) — called when the detected card brand changes. `brand` is `"visa"`, `"mastercard"`, `"amex"`, `"discover"`, `"diners"`, or `"jcb"`, or `null` when the field is empty or the number does not match a known brand. Does not include PCI data.
 
@@ -585,12 +584,12 @@ Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most int
 
 ### Exported types
 
-`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `ConfirmResult`, `ConfirmationResult` (deprecated), `ConfirmationIncompleteReason`, `PaymentMethodFormValidityChangeEvent`, `CardBrand`, `PaymentMethodFormCardBrandChangeEvent`, `FormattedGooglePayPaymentData`, `Message`, `Appearance`, `ThemeVariable`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`.
+`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `ConfirmResult`, `PaymentMethodFormValidityChangeEvent`, `CardBrand`, `PaymentMethodFormCardBrandChangeEvent`, `FormattedGooglePayPaymentData`, `Message`, `Appearance`, `ThemeVariable`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`.
 
 ## Notes and potential gotchas
 
 - **`ref` / `iframeRef`**: for card and bank forms, pass `ref={iframeRef}` to the form component. The same `iframeRef` must be used when calling `validateForm`, `confirmPayment`, `confirmSetup`, or `resetForm`. The component forwards the ref to the inner iframe.
-- **`confirmPayment` / `confirmSetup` are not settlement proof**: `{ status: "succeeded" }` means authorization succeeded (capture may still finish asynchronously). Verify payment or setup success on your backend via webhooks. Recoverable field errors stay in the iframe; the Promise still resolves `{ status: "failed" }`. Deprecated `onResult` still receives `incomplete` with `reason` (`"field_errors"` or `"validation_failed"`).
+- **`confirmPayment` / `confirmSetup` are not settlement proof**: `{ status: "succeeded" }` means authorization succeeded (capture may still finish asynchronously). Verify payment or setup success on your backend via webhooks. Recoverable field errors stay in the iframe; the Promise still resolves `{ status: "failed" }`.
 - **Same components for payment vs setup intents**: `AmosCreditCardPaymentMethodForm` and `AmosBankAccountPaymentMethodForm` support both payment intents and setup intents. The flow differs only by which server call you make and which confirmation function you use (`confirmPayment` vs `confirmSetup`).
 - **Amount format**: for `AmosGooglePayButton`, `AmosApplePayButton`, and `AmosBankAccountPaymentMethodForm`, `amount` is a major-currency decimal string (e.g. `"50.00"` for $50.00). For `components["schemas"]["CreatePaymentIntentInput"]` on the server (card/bank create, and the object the wallet iframe sends to `onConfirm`), `amount` is a number in cents (e.g. `5000`).
 - **Plaid Link (ACH verification)**: load `cdn.plaid.com` from the **parent** document (see CSP on `AmosBankAccountPaymentMethodForm`). Merchants do not proxy Pay API; the bank iframe fetches the ACH threshold for payment intents and mints link tokens. Setup intents skip the merchant lookup and always require Plaid unless the render token disables verification. Confirm still goes through the bank iframe so Amos can attach `plaid` to the payment method.

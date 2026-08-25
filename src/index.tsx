@@ -4,13 +4,10 @@ import {
   type Appearance,
   type ApplePayButtonElementProps,
   confirmPayment as amosConfirmPayment,
-  confirmPaymentIntent as amosConfirmPaymentIntent,
   confirmSetup as amosConfirmSetup,
-  confirmSetupIntent as amosConfirmSetupIntent,
   resetForm as amosResetForm,
   validateForm as amosValidateForm,
   type BillingAddressRequirement,
-  type ConfirmationResult,
   type ConfirmResult,
   type CreditCardAdditionalFields,
   ensureSkeletonStyles,
@@ -95,38 +92,8 @@ export function confirmSetup({
 }
 
 /**
- * @deprecated Use {@link confirmPayment}.
- */
-export function confirmPaymentIntent({
-  iframeRef,
-  token,
-}: {
-  iframeRef: IframeRef;
-} & Pick<
-  components["schemas"]["EmbedToken"],
-  "token"
->): Promise<ConfirmResult> {
-  return amosConfirmPaymentIntent({ iframe: resolveIframe(iframeRef), token });
-}
-
-/**
- * @deprecated Use {@link confirmSetup}.
- */
-export function confirmSetupIntent({
-  iframeRef,
-  token,
-}: {
-  iframeRef: IframeRef;
-} & Pick<
-  components["schemas"]["EmbedToken"],
-  "token"
->): Promise<ConfirmResult> {
-  return amosConfirmSetupIntent({ iframe: resolveIframe(iframeRef), token });
-}
-
-/**
  * Clear all field values and API errors in the embedded card/bank iframe
- * form. Call after `onResult` when the customer wants to try again.
+ * form. Call after a failed confirm when the customer wants to try again.
  */
 export function resetForm({ iframeRef }: { iframeRef: IframeRef }): void {
   amosResetForm({ iframe: resolveIframe(iframeRef) });
@@ -287,10 +254,6 @@ type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
   renderToken: string;
   appearance?: Appearance;
   /**
-   * @deprecated Prefer `await confirmPayment()` / `await confirmSetup()`.
-   */
-  onResult?: (result: ConfirmationResult) => void;
-  /**
    * Called when form validity changes. `isValid` is true when all
    * required fields are present and valid. Does not include PCI data.
    */
@@ -318,7 +281,6 @@ export function AmosCreditCardPaymentMethodForm({
   ref,
   renderToken,
   appearance,
-  onResult,
   onValidityChange,
   onCardBrandChanged,
   additionalFields = { cardholderName: false },
@@ -337,7 +299,6 @@ export function AmosCreditCardPaymentMethodForm({
       appearance,
       additionalFields,
       billingAddressRequirement,
-      onResult,
       onValidityChange,
       onCardBrandChanged,
     },
@@ -351,7 +312,6 @@ export function AmosCreditCardPaymentMethodForm({
       appearance,
       additionalFields,
       billingAddressRequirement,
-      onResult,
       onValidityChange,
       onCardBrandChanged,
     ],
@@ -363,10 +323,6 @@ export function AmosCreditCardPaymentMethodForm({
 type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
   renderToken: string;
   appearance?: Appearance;
-  /**
-   * @deprecated Prefer `await confirmPayment()` / `await confirmSetup()`.
-   */
-  onResult?: (result: ConfirmationResult) => void;
   /**
    * Called when form validity changes. `isValid` is true when all
    * required fields are present and valid, or when Plaid Link has
@@ -402,7 +358,6 @@ export function AmosBankAccountPaymentMethodForm({
   ref,
   renderToken,
   appearance,
-  onResult,
   onValidityChange,
   billingAddressRequirement = "country",
   amount = "0",
@@ -422,7 +377,6 @@ export function AmosBankAccountPaymentMethodForm({
       billingAddressRequirement,
       amount,
       intent,
-      onResult,
       onValidityChange,
     },
     remountDeps: [renderToken, billingAddressRequirement, intent],
@@ -432,7 +386,6 @@ export function AmosBankAccountPaymentMethodForm({
       billingAddressRequirement,
       amount,
       intent,
-      onResult,
       onValidityChange,
     ],
   });
