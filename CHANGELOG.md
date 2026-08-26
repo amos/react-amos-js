@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.3
+
+### Patch Changes
+
+- Use embedded Plaid
+
 ## 0.11.2
 
 ### Patch Changes

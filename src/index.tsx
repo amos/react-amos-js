@@ -325,29 +325,24 @@ type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
   appearance?: Appearance;
   /**
    * Called when form validity changes. `isValid` is true when all
-   * required fields are present and valid, or when Plaid Link has
-   * returned credentials. Does not include PCI data.
+   * required fields are present and valid, or when Plaid Embedded Link
+   * has returned credentials. Does not include PCI data.
    */
   onValidityChange?: (event: { isValid: boolean }) => void;
   billingAddressRequirement?: BillingAddressRequirement;
   /**
-   * Charge amount as a major-currency decimal string (e.g. `"50.00"`
-   * for $50.00), the same format as Google Pay / Apple Pay. Compared
-   * to the merchant ACH threshold fetched by the iframe. Defaults to
-   * `"0"`, which is typically under the threshold so Connect / Plaid
-   * stays hidden until the host passes a real charge.
+   * When true, hide the routing/account iframe and mount Plaid Embedded
+   * Institution Search in the parent. Ignored when `intent` is `"setup"`
+   * (setup always shows Plaid) or when the render token disables
+   * verification.
    *
-   * Ignored when {@link AmosBankAccountPaymentMethodFormProps.intent} is
-   * `"setup"`.
-   *
-   * @default "0"
+   * @default false
    */
-  amount?: string;
+  requireAchVerification?: boolean;
   /**
    * `"setup"` saves a bank account for later charges and always shows
-   * Connect / Plaid (no merchant threshold lookup). `"payment"`
-   * compares {@link AmosBankAccountPaymentMethodFormProps.amount} to the
-   * merchant ACH threshold.
+   * Plaid (unless the render token disables verification). `"payment"`
+   * uses {@link AmosBankAccountPaymentMethodFormProps.requireAchVerification}.
    *
    * @default "payment"
    */
@@ -360,7 +355,7 @@ export function AmosBankAccountPaymentMethodForm({
   appearance,
   onValidityChange,
   billingAddressRequirement = "country",
-  amount = "0",
+  requireAchVerification = false,
   intent = "payment",
   style,
   ...rest
@@ -375,7 +370,7 @@ export function AmosBankAccountPaymentMethodForm({
       renderToken,
       appearance,
       billingAddressRequirement,
-      amount,
+      requireAchVerification,
       intent,
       onValidityChange,
     },
@@ -384,7 +379,7 @@ export function AmosBankAccountPaymentMethodForm({
     updateDeps: [
       appearance,
       billingAddressRequirement,
-      amount,
+      requireAchVerification,
       intent,
       onValidityChange,
     ],
