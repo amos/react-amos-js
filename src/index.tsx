@@ -8,7 +8,8 @@ import {
   resetForm as amosResetForm,
   validateForm as amosValidateForm,
   type BillingAddressRequirement,
-  type ConfirmResult,
+  type ConfirmPaymentResult,
+  type ConfirmSetupResult,
   type CreditCardAdditionalFields,
   ensureSkeletonStyles,
   type GooglePayButtonElementProps,
@@ -68,7 +69,7 @@ export function confirmPayment({
 } & Pick<
   components["schemas"]["EmbedToken"],
   "token"
->): Promise<ConfirmResult> {
+>): Promise<ConfirmPaymentResult> {
   return amosConfirmPayment({ iframe: resolveIframe(iframeRef), token });
 }
 
@@ -87,7 +88,7 @@ export function confirmSetup({
 } & Pick<
   components["schemas"]["EmbedToken"],
   "token"
->): Promise<ConfirmResult> {
+>): Promise<ConfirmSetupResult> {
   return amosConfirmSetup({ iframe: resolveIframe(iframeRef), token });
 }
 
@@ -423,8 +424,8 @@ type AmosGooglePayButtonProps = {
   }: {
     paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
     customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
-    confirmPayment: (token: string) => Promise<ConfirmResult>;
-  }) => Promise<ConfirmResult>;
+    confirmPayment: (token: string) => Promise<ConfirmPaymentResult>;
+  }) => Promise<ConfirmPaymentResult>;
 };
 
 /**
@@ -509,8 +510,8 @@ type AmosApplePayButtonProps = {
   }: {
     paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
     customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
-    confirmPayment: (token: string) => Promise<ConfirmResult>;
-  }) => Promise<ConfirmResult>;
+    confirmPayment: (token: string) => Promise<ConfirmPaymentResult>;
+  }) => Promise<ConfirmPaymentResult>;
 };
 
 /**

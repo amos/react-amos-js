@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.4
+
+### Patch Changes
+
+- Restore intent responses
+
 ## 0.11.3
 
 ### Patch Changes
