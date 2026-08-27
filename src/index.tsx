@@ -5,6 +5,7 @@ import {
   type ApplePayButtonElementProps,
   confirmPayment as amosConfirmPayment,
   confirmSetup as amosConfirmSetup,
+  focusField as amosFocusField,
   resetForm as amosResetForm,
   validateForm as amosValidateForm,
   type BillingAddressRequirement,
@@ -17,6 +18,8 @@ import {
   mountAmosBankAccountPaymentMethodForm,
   mountAmosCreditCardPaymentMethodForm,
   mountAmosGooglePayButton,
+  type PaymentMethodFormDefaultValues,
+  type PaymentMethodFormField,
   resolveWalletButtonSkeletonBorderRadius,
 } from "@amos.com/amos-js";
 import type { components } from "@amos.com/node";
@@ -64,13 +67,19 @@ export function validateForm({
 export function confirmPayment({
   iframeRef,
   token,
+  defaultValues,
 }: {
   iframeRef: IframeRef;
+  defaultValues?: PaymentMethodFormDefaultValues;
 } & Pick<
   components["schemas"]["EmbedToken"],
   "token"
 >): Promise<ConfirmPaymentResult> {
-  return amosConfirmPayment({ iframe: resolveIframe(iframeRef), token });
+  return amosConfirmPayment({
+    iframe: resolveIframe(iframeRef),
+    token,
+    defaultValues,
+  });
 }
 
 /**
@@ -83,13 +92,19 @@ export function confirmPayment({
 export function confirmSetup({
   iframeRef,
   token,
+  defaultValues,
 }: {
   iframeRef: IframeRef;
+  defaultValues?: PaymentMethodFormDefaultValues;
 } & Pick<
   components["schemas"]["EmbedToken"],
   "token"
 >): Promise<ConfirmSetupResult> {
-  return amosConfirmSetup({ iframe: resolveIframe(iframeRef), token });
+  return amosConfirmSetup({
+    iframe: resolveIframe(iframeRef),
+    token,
+    defaultValues,
+  });
 }
 
 /**
@@ -98,6 +113,21 @@ export function confirmSetup({
  */
 export function resetForm({ iframeRef }: { iframeRef: IframeRef }): void {
   amosResetForm({ iframe: resolveIframe(iframeRef) });
+}
+
+/**
+ * Focus a named control inside the embedded card/bank iframe. No-op if
+ * the field is not rendered, or while Plaid Embedded Institution Search
+ * is showing. Call from a click or keydown handler.
+ */
+export function focusField({
+  iframeRef,
+  field,
+}: {
+  iframeRef: IframeRef;
+  field: PaymentMethodFormField;
+}): void {
+  amosFocusField({ iframe: resolveIframe(iframeRef), field });
 }
 
 type ForwardedIframeRef = Ref<HTMLIFrameElement> | undefined;
@@ -276,6 +306,12 @@ type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
   }) => void;
   additionalFields?: CreditCardAdditionalFields;
   billingAddressRequirement?: BillingAddressRequirement;
+  /**
+   * Seed cardholder name and billing address. Provided keys overwrite
+   * matching fields, including ones the customer already edited. Values
+   * are sent on confirm even when those inputs are hidden.
+   */
+  defaultValues?: PaymentMethodFormDefaultValues;
 };
 
 export function AmosCreditCardPaymentMethodForm({
@@ -286,6 +322,7 @@ export function AmosCreditCardPaymentMethodForm({
   onCardBrandChanged,
   additionalFields = { cardholderName: false },
   billingAddressRequirement = "country",
+  defaultValues,
   style,
   ...rest
 }: AmosCreditCardPaymentMethodFormProps) {
@@ -300,6 +337,7 @@ export function AmosCreditCardPaymentMethodForm({
       appearance,
       additionalFields,
       billingAddressRequirement,
+      defaultValues,
       onValidityChange,
       onCardBrandChanged,
     },
@@ -313,6 +351,7 @@ export function AmosCreditCardPaymentMethodForm({
       appearance,
       additionalFields,
       billingAddressRequirement,
+      defaultValues,
       onValidityChange,
       onCardBrandChanged,
     ],
@@ -331,6 +370,12 @@ type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
    */
   onValidityChange?: (event: { isValid: boolean }) => void;
   billingAddressRequirement?: BillingAddressRequirement;
+  /**
+   * Seed account holder name and billing address. Provided keys
+   * overwrite matching fields, including ones the customer already
+   * edited.
+   */
+  defaultValues?: PaymentMethodFormDefaultValues;
   /**
    * When true, hide the routing/account iframe and mount Plaid Embedded
    * Institution Search in the parent. Ignored when `intent` is `"setup"`
@@ -356,6 +401,7 @@ export function AmosBankAccountPaymentMethodForm({
   appearance,
   onValidityChange,
   billingAddressRequirement = "country",
+  defaultValues,
   requireAchVerification = false,
   intent = "payment",
   style,
@@ -371,6 +417,7 @@ export function AmosBankAccountPaymentMethodForm({
       renderToken,
       appearance,
       billingAddressRequirement,
+      defaultValues,
       requireAchVerification,
       intent,
       onValidityChange,
@@ -380,6 +427,7 @@ export function AmosBankAccountPaymentMethodForm({
     updateDeps: [
       appearance,
       billingAddressRequirement,
+      defaultValues,
       requireAchVerification,
       intent,
       onValidityChange,
