@@ -1,5 +1,12 @@
 # @amos.com/react-amos-js
 
+## 0.11.8
+
+### Patch Changes
+
+- Add `onEscapeKeyPressed` to card and bank form components so hosts that render the iframe in a modal can close it when Escape is pressed inside the iframe.
+- Propagate escape key press
+
 ## 0.11.7
 
 ### Patch Changes

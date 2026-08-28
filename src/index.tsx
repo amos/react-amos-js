@@ -304,6 +304,14 @@ type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
       | "jcb"
       | null;
   }) => void;
+  /**
+   * Called when the customer presses Escape in the iframe. PCI-safe —
+   * no field values. Use this to close a host modal that contains the
+   * iframe. Not fired while an iframe dropdown or address suggestion
+   * list is open, or while Plaid Embedded Institution Search is
+   * showing.
+   */
+  onEscapeKeyPressed?: () => void;
   additionalFields?: CreditCardAdditionalFields;
   billingAddressRequirement?: BillingAddressRequirement;
   /**
@@ -320,6 +328,7 @@ export function AmosCreditCardPaymentMethodForm({
   appearance,
   onValidityChange,
   onCardBrandChanged,
+  onEscapeKeyPressed,
   additionalFields = { cardholderName: false },
   billingAddressRequirement = "country",
   defaultValues,
@@ -340,6 +349,7 @@ export function AmosCreditCardPaymentMethodForm({
       defaultValues,
       onValidityChange,
       onCardBrandChanged,
+      onEscapeKeyPressed,
     },
     remountDeps: [
       renderToken,
@@ -354,6 +364,7 @@ export function AmosCreditCardPaymentMethodForm({
       defaultValues,
       onValidityChange,
       onCardBrandChanged,
+      onEscapeKeyPressed,
     ],
   });
 
@@ -369,6 +380,14 @@ type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
    * has returned credentials. Does not include PCI data.
    */
   onValidityChange?: (event: { isValid: boolean }) => void;
+  /**
+   * Called when the customer presses Escape in the iframe. PCI-safe —
+   * no field values. Use this to close a host modal that contains the
+   * iframe. Not fired while an iframe dropdown or address suggestion
+   * list is open, or while Plaid Embedded Institution Search is
+   * showing.
+   */
+  onEscapeKeyPressed?: () => void;
   billingAddressRequirement?: BillingAddressRequirement;
   /**
    * Seed account holder name and billing address. Provided keys
@@ -400,6 +419,7 @@ export function AmosBankAccountPaymentMethodForm({
   renderToken,
   appearance,
   onValidityChange,
+  onEscapeKeyPressed,
   billingAddressRequirement = "country",
   defaultValues,
   requireAchVerification = false,
@@ -421,6 +441,7 @@ export function AmosBankAccountPaymentMethodForm({
       requireAchVerification,
       intent,
       onValidityChange,
+      onEscapeKeyPressed,
     },
     remountDeps: [renderToken, billingAddressRequirement, intent],
     iframePassthrough: { style, ...rest },
@@ -431,6 +452,7 @@ export function AmosBankAccountPaymentMethodForm({
       requireAchVerification,
       intent,
       onValidityChange,
+      onEscapeKeyPressed,
     ],
   });
 

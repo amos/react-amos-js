@@ -159,7 +159,7 @@ Radio groups (e.g. account type) always use an above-style group label regardles
 
 ### Rendering the credit card inputs within your custom form
 
-Wrap the component in a host `<form>`. Enter in the iframe submits it (same as Stripe Elements). The parent cannot listen for that key itself because the iframe is cross-origin.
+Wrap the component in a host `<form>`. Enter in the iframe submits it (same as Stripe Elements). The parent cannot listen for that key itself because the iframe is cross-origin. If you render the iframe inside a modal, pass `onEscapeKeyPressed` to close it — Escape inside the iframe is likewise invisible to the parent.
 
 ```tsx
 import { useRef, useState } from "react";
@@ -481,6 +481,7 @@ Renders the secure credit card iframe form. A field-shaped skeleton is shown imm
 - `billingAddressRequirement` (`"country" | "full"`, defaults to `"country"`) — how much billing address the iframe collects. `country` collects country / region and, for CA / PR / GB / US, a postal code (labeled ZIP for the United States). `full` shows a full street address form with Smarty autocomplete.
 - `onValidityChange` (`(event: { isValid: boolean }) => void`) — called when form validity changes. `isValid` is true when all required fields are present and valid. Does not include PCI data. Use this to enable or disable your checkout button.
 - `onCardBrandChanged` (`(event: { brand: CardBrand | null }) => void`) — called when the detected card brand changes. `brand` is `"visa"`, `"mastercard"`, `"amex"`, `"discover"`, `"diners"`, or `"jcb"`, or `null` when the field is empty or the number does not match a known brand. Does not include PCI data.
+- `onEscapeKeyPressed` (`() => void`) — called when the customer presses Escape in the iframe. PCI-safe — no field values. Use this to close a host modal that contains the iframe. Not fired while an iframe dropdown or address suggestion list is open, or while Plaid Embedded Institution Search is showing. The parent cannot attach a keydown listener for this itself because the iframe is cross-origin.
 
 Enter in a card or bank iframe field submits the enclosing host `<form>` via `requestSubmit()` (same as Stripe Elements). Handle that form's `onSubmit` — the parent page cannot see keys typed in the cross-origin iframe. No-op if the component is not inside a `<form>`, or while Plaid Embedded Institution Search is showing.
 
@@ -494,7 +495,7 @@ When `requireAchVerification` is true (or `intent` is `"setup"`), and the render
 
 **Required props:** same as `AmosCreditCardPaymentMethodForm` — `renderToken`.
 
-**Optional props:** same as `AmosCreditCardPaymentMethodForm` — `appearance`, `billingAddressRequirement`, `onValidityChange` (`isValid` is also true after Plaid returns credentials) — plus:
+**Optional props:** same as `AmosCreditCardPaymentMethodForm` — `appearance`, `billingAddressRequirement`, `onValidityChange` (`isValid` is also true after Plaid returns credentials), `onEscapeKeyPressed` — plus:
 
 - `requireAchVerification` (`boolean`, defaults to `false`) — when true, show Plaid Embedded Link instead of routing/account fields. Ignored for `intent="setup"` (always Plaid) and when the render token has bank `verification: false`. Hosts that still have an ACH threshold should compute this themselves and pass a new value when the charge changes.
 - `intent` (`"payment" | "setup"`, defaults to `"payment"`) — `"setup"` always shows Plaid unless the render token disables verification. Use this when saving a bank account for later charges.
