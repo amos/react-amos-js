@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.7
+
+### Patch Changes
+
+- Propagate form submit
+
 ## 0.11.6
 
 ### Patch Changes

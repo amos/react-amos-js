@@ -39,8 +39,8 @@ The render token configures the iframe's allowed origin(s), allowed payment meth
 The following flow is for credit card and bank account payment method types only.
 
 1. **Set up prerequisites**: create a `renderToken` (safe for client), and keep `apiKey` and `accountId` server-side only.
-2. **Render your checkout UI** with one of the payment method components (e.g. `AmosCreditCardPaymentMethodForm`). Card and bank forms show a field-shaped skeleton immediately (sized from `appearance`, `additionalFields`, and `billingAddressRequirement`); Google Pay and Apple Pay paint a button-shaped skeleton in the parent document on first render so the 48px slot is reserved before the iframe loads.
-3. **User clicks "Pay now" button**: call `validateForm({ iframeRef })`, which returns `Promise<true>` if the embedded form is valid and `Promise<false>` otherwise.
+2. **Render your checkout UI** with one of the payment method components (e.g. `AmosCreditCardPaymentMethodForm`) **inside a host `<form>`**. Card and bank forms show a field-shaped skeleton immediately (sized from `appearance`, `additionalFields`, and `billingAddressRequirement`); Google Pay and Apple Pay paint a button-shaped skeleton in the parent document on first render so the 48px slot is reserved before the iframe loads. Enter in the iframe submits that enclosing form (PCI-safe; no field values). No-op without a host form, or while Plaid Embedded Institution Search is showing.
+3. **User clicks "Pay now" or presses Enter in the iframe**: call `validateForm({ iframeRef })`, which returns `Promise<true>` if the embedded form is valid and `Promise<false>` otherwise.
 4. **Create payment intent on your server**: use your server-side Amos client to call `POST /payment_intents`. You may also associate this payment intent with a new or existing customer via `POST /customers`. This must be server-side because it uses your private API key.
 5. **Return the payment intent token to the browser**: your backend responds with the embed token (`components["schemas"]["EmbedToken"]`) needed for confirmation.
 6. **Confirm the payment intent from the client**: `await confirmPayment({ iframeRef, token })`.
@@ -158,6 +158,8 @@ Radio groups (e.g. account type) always use an above-style group label regardles
 ## Examples
 
 ### Rendering the credit card inputs within your custom form
+
+Wrap the component in a host `<form>`. Enter in the iframe submits it (same as Stripe Elements). The parent cannot listen for that key itself because the iframe is cross-origin.
 
 ```tsx
 import { useRef, useState } from "react";
@@ -479,6 +481,8 @@ Renders the secure credit card iframe form. A field-shaped skeleton is shown imm
 - `billingAddressRequirement` (`"country" | "full"`, defaults to `"country"`) — how much billing address the iframe collects. `country` collects country / region and, for CA / PR / GB / US, a postal code (labeled ZIP for the United States). `full` shows a full street address form with Smarty autocomplete.
 - `onValidityChange` (`(event: { isValid: boolean }) => void`) — called when form validity changes. `isValid` is true when all required fields are present and valid. Does not include PCI data. Use this to enable or disable your checkout button.
 - `onCardBrandChanged` (`(event: { brand: CardBrand | null }) => void`) — called when the detected card brand changes. `brand` is `"visa"`, `"mastercard"`, `"amex"`, `"discover"`, `"diners"`, or `"jcb"`, or `null` when the field is empty or the number does not match a known brand. Does not include PCI data.
+
+Enter in a card or bank iframe field submits the enclosing host `<form>` via `requestSubmit()` (same as Stripe Elements). Handle that form's `onSubmit` — the parent page cannot see keys typed in the cross-origin iframe. No-op if the component is not inside a `<form>`, or while Plaid Embedded Institution Search is showing.
 
 **Also accepts:** standard iframe props (`React.ComponentProps<"iframe">`), minus `src`, `title`, `name`, and `role` (which are controlled by the SDK).
 
