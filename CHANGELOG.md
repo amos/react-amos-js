@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.10
+
+### Patch Changes
+
+- Follow `@amos.com/amos-js` `0.11.12`: payment iframes load from `https://js.amos.com` / `https://js-sandbox.amos.com`. Add those origins to CSP `frame-src` and `Permissions-Policy payment=` before upgrading.
+
 ## 0.11.9
 
 ### Patch Changes
