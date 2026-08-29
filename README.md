@@ -327,7 +327,7 @@ function CheckoutWallets({ renderToken }: { renderToken: string }) {
 
 Do not call `validateForm` from the host in an express flow — create a payment intent inside `onConfirm`, then `await confirmPayment(token)`. Size the mount slot; omitted `buttonProps` keep paint defaults and fill the iframe.
 
-On Safari, Apple Pay uses the native payment sheet. On other browsers, Apple's QR handoff opens in a popup (`pay.apple.com`); while that popup is open, the SDK shows a waiting overlay with **Cancel payment**.
+On Safari, Apple Pay uses the native payment sheet. On other browsers, Apple's QR handoff opens in a popup (`pay.apple.com`); while that popup is open, the SDK shows a waiting overlay with **Cancel payment**. After the buyer authorizes, Cancel is removed and the overlay shows **Completing your payment…** until `onConfirm` settles.
 
 Optional visuals:
 
@@ -569,7 +569,7 @@ Renders the secure Apple Pay iframe button (express checkout flow). Same require
 />
 ```
 
-Only Amos domains need Apple merchant registration. The button and `ApplePaySession` run inside the Amos embed iframe. On Safari, the native payment sheet is used. On other browsers, Apple's QR handoff opens in a popup (`pay.apple.com`); while that popup is open, the SDK automatically shows a full-viewport waiting overlay on the host page with instructions and a **Cancel payment** button. You do not need to implement popup or overlay handling yourself.
+Only Amos domains need Apple merchant registration. The button and `ApplePaySession` run inside the Amos embed iframe. On Safari, the native payment sheet is used. On other browsers, Apple's QR handoff opens in a popup (`pay.apple.com`); while that popup is open, the SDK automatically shows a full-viewport waiting overlay on the host page with instructions and a **Cancel payment** button. After the buyer authorizes, the overlay switches to **Completing your payment…** and hides Cancel so the donor cannot double-pay. You do not need to implement popup or overlay handling yourself.
 
 ### `formatGooglePayPaymentData({ paymentData })`
 
@@ -596,7 +596,7 @@ Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most int
 - **Same components for payment vs setup intents**: `AmosCreditCardPaymentMethodForm` and `AmosBankAccountPaymentMethodForm` support both payment intents and setup intents. The flow differs only by which server call you make and which confirmation function you use (`confirmPayment` vs `confirmSetup`).
 - **Amount format**: for `AmosGooglePayButton` and `AmosApplePayButton`, `amount` is a major-currency decimal string (e.g. `"50.00"` for $50.00). For `components["schemas"]["CreatePaymentIntentInput"]` on the server (card/bank create, and the object the wallet iframe sends to `onConfirm`), `amount` is a number in cents (e.g. `5000`).
 - **Plaid Embedded Link (ACH verification)**: load `cdn.plaid.com` from the **parent** document (see CSP on `AmosBankAccountPaymentMethodForm`). Merchants do not proxy Pay API; the bank iframe mints link tokens. Pass `requireAchVerification` when the host wants Plaid, or `intent="setup"` to always show it, unless the render token disables verification. Confirm still goes through the bank iframe so Amos can attach `plaid` to the payment method.
-- **Apple Pay waiting overlay**: on browsers where Apple's QR handoff opens in a popup (non-Safari), `AmosApplePayButton` shows a fixed full-viewport overlay on the host page until payment completes, the popup closes, or the user clicks **Cancel payment**. Avoid stacking other fixed UI above it.
+- **Apple Pay waiting overlay**: on browsers where Apple's QR handoff opens in a popup (non-Safari), `AmosApplePayButton` shows a fixed full-viewport overlay on the host page. **Cancel payment** is available until the buyer authorizes; after that the overlay shows **Completing your payment…** with no Cancel, then hides when `onConfirm` settles. Avoid stacking other fixed UI above it.
 - **Going framework-free**: if you need to use Amos outside of React (vanilla JS, another framework, etc.), use [`@amos.com/amos-js`](../amos-js) directly.
 
 ---

@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.9
+
+### Patch Changes
+
+- Keep Apple Pay waiting until confirm
+
 ## 0.11.8
 
 ### Patch Changes
