@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.11
+
+### Patch Changes
+
+- Support older browsers
+
 ## 0.11.10
 
 ### Patch Changes

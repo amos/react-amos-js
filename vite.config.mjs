@@ -24,6 +24,8 @@ export default defineConfig({
     }),
   ],
   build: {
+    // Match @amos.com/amos-js / amos-ui embed (native-ESM, 2018+).
+    target: ["chrome64", "firefox67", "safari12", "ios12", "edge79"],
     lib: {
       entry: {
         index: "src/index.tsx",
