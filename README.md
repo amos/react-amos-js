@@ -10,13 +10,13 @@ It is a thin wrapper around [`@amos.com/amos-js`](../amos-js) that adapts the fr
 npm install @amos.com/react-amos-js @amos.com/node
 ```
 
-`@amos.com/node` is a **peer dependency** (requires `>=0.1.39`). Install it in your app for OpenAPI schema types (for example `components["schemas"]["CreatePaymentIntentInput"]`) used in the examples below, and for your server-side Amos API client. React (`^17`, `^18`, or `^19`) is also a peer dependency.
+`@amos.com/node` is a **peer dependency** (requires `>=0.1.57`). Install it in your app for OpenAPI schema types (for example `components["schemas"]["CreatePaymentIntentInput"]`) used in the examples below, and for your server-side Amos API client. React (`^17`, `^18`, or `^19`) is also a peer dependency.
 
 ## What it gives you
 
 - React components for the iframe payment method forms: `AmosCreditCardPaymentMethodForm`, `AmosBankAccountPaymentMethodForm`, `AmosGooglePayButton`, `AmosApplePayButton`.
-- React-flavoured iframe message helpers that accept a React `ref`: `validateForm({ iframeRef })`, `confirmPayment({ iframeRef, token })`, `confirmSetup({ iframeRef, token })`, `resetForm({ iframeRef })`.
-- Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `formatGooglePayPaymentData`, `resetForm`, `ConfirmPaymentResult`, `ConfirmSetupResult`, `FormattedGooglePayPaymentData`, `Appearance`, `Message`, etc.
+- React-flavoured iframe message helpers that accept a React `ref`: `validateForm({ iframeRef })`, `confirmPayment({ iframeRef, token })`, `confirmSetup({ iframeRef, token })`, `resetForm({ iframeRef })`, `focusField({ iframeRef, field })`.
+- Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `formatGooglePayPaymentData`, `resetForm`, `focusField`, `ConfirmPaymentResult`, `ConfirmSetupResult`, `FormattedGooglePayPaymentData`, `Appearance`, `Message`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, etc.
 
 > **Note:** `@amos.com/react-amos-js` is the client-side half of the Amos integration. For end-to-end payment processing you also need `@amos.com/node` on your server (creating payment intents, handling webhooks, etc.). The same `@amos.com/node` package is listed as a peer dependency so you can import its OpenAPI types in client-side TypeScript code.
 
@@ -43,7 +43,7 @@ The following flow is for credit card and bank account payment method types only
 3. **User clicks "Pay now" or presses Enter in the iframe**: call `validateForm({ iframeRef })`, which returns `Promise<true>` if the embedded form is valid and `Promise<false>` otherwise.
 4. **Create payment intent on your server**: use your server-side Amos client to call `POST /payment_intents`. You may also associate this payment intent with a new or existing customer via `POST /customers`. This must be server-side because it uses your private API key.
 5. **Return the payment intent token to the browser**: your backend responds with the embed token (`components["schemas"]["EmbedToken"]`) needed for confirmation.
-6. **Confirm the payment intent from the client**: `await confirmPayment({ iframeRef, token })`.
+6. **Confirm the payment intent from the client**: `await confirmPayment({ iframeRef, token })`. It resolves `{ status: "succeeded", paymentIntent }` or `{ status: "failed", paymentIntent? }`.
 7. **Handle UX**: show the user a "processing" state while awaiting `confirmPayment`. Do not treat `{ status: "succeeded" }` as settlement proof — verify payment success on your backend via webhooks. Recoverable field errors stay in the iframe; `confirmPayment` still resolves `{ status: "failed" }` (with `paymentIntent` when the confirm API returned a body, including `last_payment_error` on declines).
 
 ### Google Pay & Apple Pay
@@ -54,7 +54,7 @@ The key differences between the express and non-express payment flows are:
 
 - The express payment method components accept `onConfirm`. Create a payment intent, then `await confirmPayment(token)`.
 - You do not call `validateForm` in an express flow.
-- You call `confirmPayment` inside `onConfirm` (the SDK no longer auto-confirms).
+- You call `confirmPayment` inside `onConfirm` (the SDK does not auto-confirm).
 
 ## Understanding the flow for creating and confirming setup intents
 
@@ -227,6 +227,16 @@ function CheckoutForm() {
         ref={iframeRef}
         renderToken="the-render-token-that-you-created-on-dashboard.amos.com"
         additionalFields={{ cardholderName: true }}
+        defaultValues={{
+          name: "Jane Doe",
+          billingAddress: {
+            line1: "354 Oyster Point Blvd",
+            city: "South San Francisco",
+            state: "CA",
+            postalCode: "94080",
+            country: "US",
+          },
+        }}
         onValidityChange={({ isValid }) => setIsValid(isValid)}
       />
       {error ? <p>{error}</p> : null}
@@ -433,35 +443,50 @@ Validates the embedded card/bank iframe form before payment confirmation.
 
 **Returns:** `Promise<boolean>` (resolves to `false` after 5 seconds if the iframe does not respond).
 
-### `confirmPayment({ iframeRef, token })`
+### `confirmPayment({ iframeRef, token, defaultValues? })`
 
-Confirms a payment intent in the embedded iframe flow. Resolves `{ status: "succeeded", paymentIntent }` or `{ status: "failed", paymentIntent? }`.
+Confirms a payment intent in the embedded iframe flow. Resolves `{ status: "succeeded", paymentIntent }` or `{ status: "failed", paymentIntent? }`. Optional `defaultValues` are applied immediately before building the payment method (including hidden name and extra billing fields) and do not replace the last `defaultValues` prop used by `resetForm`.
 
 **Parameters:**
 
 - `iframeRef` (`React.RefObject<HTMLIFrameElement | null> | undefined`, required)
 - `token` (typed as `Pick<components["schemas"]["EmbedToken"], "token">` — the embed JWT string returned by your server)
+- `defaultValues` (`PaymentMethodFormDefaultValues`, optional)
 
 **Returns:** `Promise<ConfirmPaymentResult>`
 
-### `confirmSetup({ iframeRef, token })`
+### `confirmSetup({ iframeRef, token, defaultValues? })`
 
-Confirms a setup intent in the embedded iframe flow. Use this when saving a payment method for future use.
+Confirms a setup intent in the embedded iframe flow. Use this when saving a payment method for future use. Optional `defaultValues` behave the same as on `confirmPayment`.
 
 **Parameters:**
 
 - `iframeRef` (`React.RefObject<HTMLIFrameElement | null> | undefined`, required)
 - `token` (same `Pick<components["schemas"]["EmbedToken"], "token">` embed JWT string as for payment confirmation)
+- `defaultValues` (`PaymentMethodFormDefaultValues`, optional)
 
 **Returns:** `Promise<ConfirmSetupResult>`
 
 ### `resetForm({ iframeRef })`
 
-Clears all field values and API errors in the embedded card/bank iframe form. Call after a failed confirm when the customer wants to try again (for example, after a successful payment when starting a new one).
+Clears all field values and API errors in the embedded card/bank iframe form, then restores the last `defaultValues` prop. Call after a failed confirm when the customer wants to try again (for example, after a successful payment when starting a new one).
 
 **Parameters:**
 
 - `iframeRef` (`React.RefObject<HTMLIFrameElement | null> | undefined`, required)
+
+**Returns:** `void`
+
+### `focusField({ iframeRef, field })`
+
+Focus a named control inside the card or bank iframe. No-op if the field is not rendered, or while Plaid Embedded Institution Search is showing. Call from a click or keydown handler; some browsers ignore focus without a user gesture.
+
+`field` is one of: `cardNumber`, `expiration`, `cvc`, `cardholderName`, `accountHolderName`, `accountNumber`, `confirmAccountNumber`, `routingNumber`, `accountType`, `accountHolderType`, `addressLine1`, `addressLine2`, `city`, `state`, `postalCode`, `country`.
+
+**Parameters:**
+
+- `iframeRef` (`React.RefObject<HTMLIFrameElement | null> | undefined`, required)
+- `field` (`PaymentMethodFormField`, required)
 
 **Returns:** `void`
 
@@ -479,9 +504,10 @@ Renders the secure credit card iframe form. A field-shaped skeleton is shown imm
 
 - `additionalFields` (`{ cardholderName: boolean }`) — set `additionalFields={{ cardholderName: true }}` to render the cardholder name field in the iframe (`false` by default)
 - `billingAddressRequirement` (`"country" | "full"`, defaults to `"country"`) — how much billing address the iframe collects. `country` collects country / region and, for CA / PR / GB / US, a postal code (labeled ZIP for the United States). `full` shows a full street address form with Smarty autocomplete.
+- `defaultValues` (`{ name?: string; billingAddress?: { line1?, line2?, city?, state?, postalCode?, country? } }`) — seed cardholder / account-holder name and billing address. Provided keys overwrite matching fields, including ones the customer already edited. Values are also sent on confirm even when those inputs are hidden (cardholder name off, or `country` billing mode). Never send PAN, CVC, account number, or routing number.
 - `onValidityChange` (`(event: { isValid: boolean }) => void`) — called when form validity changes. `isValid` is true when all required fields are present and valid. Does not include PCI data. Use this to enable or disable your checkout button.
 - `onCardBrandChanged` (`(event: { brand: CardBrand | null }) => void`) — called when the detected card brand changes. `brand` is `"visa"`, `"mastercard"`, `"amex"`, `"discover"`, `"diners"`, or `"jcb"`, or `null` when the field is empty or the number does not match a known brand. Does not include PCI data.
-- `onEscapeKeyPressed` (`() => void`) — called when the customer presses Escape in the iframe. PCI-safe — no field values. Use this to close a host modal that contains the iframe. Not fired while an iframe dropdown or address suggestion list is open, or while Plaid Embedded Institution Search is showing. The parent cannot attach a keydown listener for this itself because the iframe is cross-origin.
+- `onEscapeKeyPressed` (`() => void`) — called when the customer presses Escape in the iframe. PCI-safe — no field values. Use this to close a host modal that contains the iframe. Not fired while an iframe dropdown or address suggestion list is open (that Escape dismisses the overlay first), or while Plaid Embedded Institution Search is showing. The parent cannot attach a keydown listener for this itself because the iframe is cross-origin.
 
 Enter in a card or bank iframe field submits the enclosing host `<form>` via `requestSubmit()` (same as Stripe Elements). Handle that form's `onSubmit` — the parent page cannot see keys typed in the cross-origin iframe. No-op if the component is not inside a `<form>`, or while Plaid Embedded Institution Search is showing.
 
@@ -495,7 +521,7 @@ When `requireAchVerification` is true (or `intent` is `"setup"`), and the render
 
 **Required props:** same as `AmosCreditCardPaymentMethodForm` — `renderToken`.
 
-**Optional props:** same as `AmosCreditCardPaymentMethodForm` — `appearance`, `billingAddressRequirement`, `onValidityChange` (`isValid` is also true after Plaid returns credentials), `onEscapeKeyPressed` — plus:
+**Optional props:** same as `AmosCreditCardPaymentMethodForm` — `appearance`, `billingAddressRequirement`, `defaultValues`, `onValidityChange` (`isValid` is also true after Plaid returns credentials), `onEscapeKeyPressed` — plus:
 
 - `requireAchVerification` (`boolean`, defaults to `false`) — when true, show Plaid Embedded Link instead of routing/account fields. Ignored for `intent="setup"` (always Plaid) and when the render token has bank `verification: false`. Hosts that still have an ACH threshold should compute this themselves and pass a new value when the charge changes.
 - `intent` (`"payment" | "setup"`, defaults to `"payment"`) — `"setup"` always shows Plaid unless the render token disables verification. Use this when saving a bank account for later charges.
@@ -585,17 +611,28 @@ Transforms Google Pay payment data into an Amos-compatible `paymentMethod` paylo
 
 Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most integrators do not need to call these directly.
 
+### `getCreditCardFormSrc(renderToken, additionalFields?, billingAddressRequirement?)` / `getBankAccountFormSrc(renderToken, billingAddressRequirement?, intent?)` / `getGooglePayButtonSrc(renderToken)` / `getApplePayButtonSrc(renderToken)`
+
+Re-exports from `@amos.com/amos-js`. Build the iframe `src` URL for each form type. The React components call these for you.
+
+Each URL includes the embed's canonical search params (`token`, `additionalFields`, `billingAddressRequirement`, `intent`) so the embed router does not 307 to fill in defaults. After the iframe `load` event, if `IFRAME_READY` never arrives (stale HTML, missing JS chunk), the SDK rewrites `src` once with `amosReload` so the next document is a real navigation.
+
+### `updateDefaultValues({ iframe, defaultValues })`
+
+Re-export from `@amos.com/amos-js`. Push name and billing-address defaults into a mounted form. Passing a new `defaultValues` prop on the React component does the same.
+
 ### Exported types
 
-`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `ConfirmPaymentResult`, `ConfirmSetupResult`, `PaymentMethodFormValidityChangeEvent`, `CardBrand`, `PaymentMethodFormCardBrandChangeEvent`, `FormattedGooglePayPaymentData`, `Message`, `Appearance`, `ThemeVariable`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`.
+`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `ConfirmPaymentResult`, `ConfirmSetupResult`, `PaymentMethodFormValidityChangeEvent`, `CardBrand`, `PaymentMethodFormCardBrandChangeEvent`, `FormattedGooglePayPaymentData`, `Message`, `Appearance`, `ThemeVariable`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`.
 
 ## Notes and potential gotchas
 
-- **`ref` / `iframeRef`**: for card and bank forms, pass `ref={iframeRef}` to the form component. The same `iframeRef` must be used when calling `validateForm`, `confirmPayment`, `confirmSetup`, or `resetForm`. The component forwards the ref to the inner iframe.
+- **`ref` / `iframeRef`**: for card and bank forms, pass `ref={iframeRef}` to the form component. The same `iframeRef` must be used when calling `validateForm`, `confirmPayment`, `confirmSetup`, `resetForm`, or `focusField`. The component forwards the ref to the inner iframe.
 - **`confirmPayment` / `confirmSetup` are not settlement proof**: `{ status: "succeeded" }` means authorization succeeded (capture may still finish asynchronously). Verify payment or setup success on your backend via webhooks. Recoverable field errors stay in the iframe; the Promise still resolves `{ status: "failed" }`. Declined confirms include the intent so you can read `last_payment_error` without a follow-up GET.
 - **Same components for payment vs setup intents**: `AmosCreditCardPaymentMethodForm` and `AmosBankAccountPaymentMethodForm` support both payment intents and setup intents. The flow differs only by which server call you make and which confirmation function you use (`confirmPayment` vs `confirmSetup`).
 - **Amount format**: for `AmosGooglePayButton` and `AmosApplePayButton`, `amount` is a major-currency decimal string (e.g. `"50.00"` for $50.00). For `components["schemas"]["CreatePaymentIntentInput"]` on the server (card/bank create, and the object the wallet iframe sends to `onConfirm`), `amount` is a number in cents (e.g. `5000`).
 - **Embed host / CSP**: iframes load from `https://js.amos.com` (production) and `https://js-sandbox.amos.com` (sandbox) via `getEmbedOrigin`. Parent pages that pin CSP must allow `frame-src https://js.amos.com https://js-sandbox.amos.com` (and `Permissions-Policy payment=` for those origins) **before** upgrading this package. Older SDK versions still load `embed.amos.com` / `embed-sandbox.amos.com`.
+- **Iframe handshake**: iframe URLs include canonical search params so the embed does not 307. If the document loads but never posts `IFRAME_READY`, the SDK rewrites `src` once with `amosReload`.
 - **Plaid Embedded Link (ACH verification)**: load `cdn.plaid.com` from the **parent** document (see CSP on `AmosBankAccountPaymentMethodForm`). Merchants do not proxy Pay API; the bank iframe mints link tokens. Pass `requireAchVerification` when the host wants Plaid, or `intent="setup"` to always show it, unless the render token disables verification. Confirm still goes through the bank iframe so Amos can attach `plaid` to the payment method.
 - **Apple Pay waiting overlay**: on browsers where Apple's QR handoff opens in a popup (non-Safari), `AmosApplePayButton` shows a fixed full-viewport overlay on the host page. **Cancel payment** is available until the buyer authorizes; after that the overlay shows **Completing your payment…** with no Cancel, then hides when `onConfirm` settles. Avoid stacking other fixed UI above it.
 - **Going framework-free**: if you need to use Amos outside of React (vanilla JS, another framework, etc.), use [`@amos.com/amos-js`](../amos-js) directly.
