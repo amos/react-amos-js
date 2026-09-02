@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.15
+
+### Patch Changes
+
+- Distinguish timeout from decline
+
 ## 0.11.14
 
 ### Patch Changes

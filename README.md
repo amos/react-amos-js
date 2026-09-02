@@ -43,8 +43,8 @@ The following flow is for credit card and bank account payment method types only
 3. **User clicks "Pay now" or presses Enter in the iframe**: call `validateForm({ iframeRef })`, which returns `Promise<true>` if the embedded form is valid and `Promise<false>` otherwise.
 4. **Create payment intent on your server**: use your server-side Amos client to call `POST /payment_intents`. You may also associate this payment intent with a new or existing customer via `POST /customers`. This must be server-side because it uses your private API key.
 5. **Return the payment intent token to the browser**: your backend responds with the embed token (`components["schemas"]["EmbedToken"]`) needed for confirmation.
-6. **Confirm the payment intent from the client**: `await confirmPayment({ iframeRef, token })`. It resolves `{ status: "succeeded", paymentIntent }` or `{ status: "failed", paymentIntent? }`.
-7. **Handle UX**: show the user a "processing" state while awaiting `confirmPayment`. Do not treat `{ status: "succeeded" }` as settlement proof — verify payment success on your backend via webhooks. Recoverable field errors stay in the iframe; `confirmPayment` still resolves `{ status: "failed" }` (with `paymentIntent` when the confirm API returned a body, including `last_payment_error` on declines).
+6. **Confirm the payment intent from the client**: `await confirmPayment({ iframeRef, token })`. It resolves `{ status: "succeeded", paymentIntent }`, `{ status: "failed", paymentIntent? }` on decline, or `{ status: "failed", error: "timeout" }` if the iframe does not respond within 15 seconds (`isConfirmTimeout(result)`).
+7. **Handle UX**: show the user a "processing" state while awaiting `confirmPayment`. Do not treat `{ status: "succeeded" }` as settlement proof — verify payment success on your backend via webhooks. Recoverable field errors stay in the iframe; a processor decline still resolves `{ status: "failed" }` (with `paymentIntent` when the confirm API returned a body, including `last_payment_error`). A timeout is **not** a decline — the charge may still settle; do not retry as a new payment.
 
 ### Google Pay & Apple Pay
 
@@ -508,7 +508,7 @@ Validates the embedded card/bank iframe form before payment confirmation.
 
 ### `confirmPayment({ iframeRef, token, defaultValues? })`
 
-Confirms a payment intent in the embedded iframe flow. Resolves `{ status: "succeeded", paymentIntent }` or `{ status: "failed", paymentIntent? }`. Optional `defaultValues` are applied immediately before building the payment method (including hidden name and extra billing fields) and do not replace the last `defaultValues` prop used by `resetForm`.
+Confirms a payment intent in the embedded iframe flow. Resolves `{ status: "succeeded", paymentIntent }`, `{ status: "failed", paymentIntent? }` on decline, or `{ status: "failed", error: "timeout" }` if the iframe does not respond within 15 seconds (`CONFIRM_TIMEOUT_MS`). Optional `defaultValues` are applied immediately before building the payment method (including hidden name and extra billing fields) and do not replace the last `defaultValues` prop used by `resetForm`.
 
 **Parameters:**
 
@@ -516,11 +516,11 @@ Confirms a payment intent in the embedded iframe flow. Resolves `{ status: "succ
 - `token` (typed as `Pick<components["schemas"]["EmbedToken"], "token">` — the embed JWT string returned by your server)
 - `defaultValues` (`PaymentMethodFormDefaultValues`, optional)
 
-**Returns:** `Promise<ConfirmPaymentResult>`
+**Returns:** `Promise<ConfirmPaymentResult>` — use `isConfirmTimeout(result)` to treat a timeout as uncertain (do not retry). Embed aborts hung `/confirm` at 10s and posts the same timeout result; the SDK wait is strictly above that.
 
 ### `confirmSetup({ iframeRef, token, defaultValues? })`
 
-Confirms a setup intent in the embedded iframe flow. Use this when saving a payment method for future use. Optional `defaultValues` behave the same as on `confirmPayment`.
+Confirms a setup intent in the embedded iframe flow. Use this when saving a payment method for future use. Optional `defaultValues` behave the same as on `confirmPayment`. Same 15-second timeout window and `isConfirmTimeout` rule as `confirmPayment`.
 
 **Parameters:**
 
@@ -695,7 +695,7 @@ Re-export from `@amos.com/amos-js`. Fills omitted Inter `fonts` / `--font-family
 ## Notes and potential gotchas
 
 - **`ref` / `iframeRef`**: for card and bank forms, pass `ref={iframeRef}` to the form component. The same `iframeRef` must be used when calling `validateForm`, `confirmPayment`, `confirmSetup`, `resetForm`, or `focusField`. The component forwards the ref to the inner iframe.
-- **`confirmPayment` / `confirmSetup` are not settlement proof**: `{ status: "succeeded" }` means authorization succeeded (capture may still finish asynchronously). Verify payment or setup success on your backend via webhooks. Recoverable field errors stay in the iframe; the Promise still resolves `{ status: "failed" }`. Declined confirms include the intent so you can read `last_payment_error` without a follow-up GET.
+- **`confirmPayment` / `confirmSetup` are not settlement proof**: `{ status: "succeeded" }` means authorization succeeded (capture may still finish asynchronously). Verify payment or setup success on your backend via webhooks. Recoverable field errors stay in the iframe; a processor decline still resolves `{ status: "failed" }`. Declined confirms include the intent so you can read `last_payment_error` without a follow-up GET. If the iframe never answers, the Promise resolves `{ status: "failed", error: "timeout" }` after 15 seconds (`CONFIRM_TIMEOUT_MS`, `isConfirmTimeout`) — that is uncertain, not a decline; do not retry as a new payment.
 - **Same components for payment vs setup intents**: `AmosCreditCardPaymentMethodForm` and `AmosBankAccountPaymentMethodForm` support both payment intents and setup intents. The flow differs only by which server call you make and which confirmation function you use (`confirmPayment` vs `confirmSetup`).
 - **Amount format**: for `AmosGooglePayButton` and `AmosApplePayButton`, `amount` is a major-currency decimal string (e.g. `"50.00"` for $50.00). For `components["schemas"]["CreatePaymentIntentInput"]` on the server (card/bank create, and the object the wallet iframe sends to `onConfirm`), `amount` is a number in cents (e.g. `5000`).
 - **Embed host / CSP**: iframes load from `https://js.amos.com` (production) and `https://js-sandbox.amos.com` (sandbox) via `getEmbedOrigin`. Parent pages that pin CSP must allow `frame-src https://js.amos.com https://js-sandbox.amos.com` (and `Permissions-Policy payment=` for those origins) **before** upgrading this package. Older SDK versions still load `embed.amos.com` / `embed-sandbox.amos.com`.

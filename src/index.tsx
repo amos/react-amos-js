@@ -63,6 +63,14 @@ export function validateForm({
  *
  * Pass the embed JWT (`token`) returned by your server's
  * `POST /payment_intents` call.
+ *
+ * Resolves `{ status: "succeeded", paymentIntent }` after authorization,
+ * `{ status: "failed", paymentIntent? }` on decline, or
+ * `{ status: "failed", error: "timeout" }` if the iframe does not post
+ * `CONFIRMATION_RESULT` within 15 seconds (`CONFIRM_TIMEOUT_MS`). Use
+ * `isConfirmTimeout(result)` — a timeout is not a decline; the charge
+ * may still settle. Embed `/confirm` aborts at 10s and posts the same
+ * timeout result.
  */
 export function confirmPayment({
   iframeRef,
@@ -88,6 +96,12 @@ export function confirmPayment({
  *
  * Pass the embed JWT (`token`) returned by your server's
  * `POST /setup_intents` call.
+ *
+ * Resolves `{ status: "succeeded", setupIntent }` after verification,
+ * `{ status: "failed", setupIntent? }` on decline, or
+ * `{ status: "failed", error: "timeout" }` if the iframe does not
+ * respond within 15 seconds. Same `isConfirmTimeout` rule as
+ * {@link confirmPayment}.
  */
 export function confirmSetup({
   iframeRef,
