@@ -16,7 +16,7 @@ npm install @amos.com/react-amos-js @amos.com/node
 
 - React components for the iframe payment method forms: `AmosCreditCardPaymentMethodForm`, `AmosBankAccountPaymentMethodForm`, `AmosGooglePayButton`, `AmosApplePayButton`.
 - React-flavoured iframe message helpers that accept a React `ref`: `validateForm({ iframeRef })`, `confirmPayment({ iframeRef, token })`, `confirmSetup({ iframeRef, token })`, `resetForm({ iframeRef })`, `focusField({ iframeRef, field })`.
-- Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `formatGooglePayPaymentData`, `resetForm`, `focusField`, `ConfirmPaymentResult`, `ConfirmSetupResult`, `FormattedGooglePayPaymentData`, `Appearance`, `Message`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, etc.
+- Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `formatGooglePayPaymentData`, `resetForm`, `focusField`, `ConfirmPaymentResult`, `ConfirmSetupResult`, `FormattedGooglePayPaymentData`, `Appearance`, `FontSource`, `AppearanceRuleSelector`, `Message`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, etc.
 
 > **Note:** `@amos.com/react-amos-js` is the client-side half of the Amos integration. For end-to-end payment processing you also need `@amos.com/node` on your server (creating payment intents, handling webhooks, etc.). The same `@amos.com/node` package is listed as a peer dependency so you can import its OpenAPI types in client-side TypeScript code.
 
@@ -82,22 +82,84 @@ In short, your app orchestrates the payment flow, while sensitive payment data s
 
 ## Appearance
 
-Card and bank components accept an optional `appearance` prop that controls the look of the iframe UI. It contains a `themeVariables` object whose keys are CSS custom-property names and whose values are strings, and an optional `labels` setting for field label placement. You can update this prop after page load to update the iframe appearance. Wallet buttons do not take `appearance`.
+Card and bank components accept an optional `appearance` prop that controls the look of the iframe UI. It contains a `themeVariables` object whose keys are CSS custom-property names and whose values are strings, an optional `labels` setting for field label placement, and optional `fonts` to load webfonts inside the iframe. You can update this prop after page load to update the iframe appearance. Wallet buttons do not take `appearance`.
 
 ```tsx
 <AmosCreditCardPaymentMethodForm
   renderToken="..."
   appearance={{
     labels: "floating",
+    fonts: [
+      { cssSrc: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" },
+    ],
     themeVariables: {
       "--primary": "oklch(0.5 0.2 240)",
       "--radius": "0.25rem",
+      "--font-family": "Inter, ui-sans-serif, system-ui, sans-serif",
     },
   }}
 />
 ```
 
 `themeVariables` uses a **replace** model: each update that includes `themeVariables` sets the full override set. Only the variables you list are overridden; unlisted variables revert to iframe defaults. Omit `themeVariables` to leave existing overrides unchanged.
+
+`fonts` uses the same replace model: omit `fonts` to keep the previous set; pass a new array to replace it (`[]` clears the webfont). The iframe does not wait for webfonts before revealing — custom faces use `font-display: swap`.
+
+### Fonts
+
+When you omit `fonts` and `--font-family`, the SDK sends Google Fonts Inter on the first `UPDATE_APPEARANCE` (same stylesheet the embed used to load globally) and sets `--font-family` to `Inter, ui-sans-serif, system-ui, sans-serif`. That is what lets js.amos.com drop its own Inter `<link>` once every client is on this SDK.
+
+Pass Stripe-style font sources on `appearance.fonts` to replace that default. Pair them with `--font-family` so the iframe uses the loaded face (see the example above). A custom `@font-face` source looks like `{ family: "MyFont", src: 'url(https://cdn.example.com/my.woff2)', display: "swap" }`.
+
+Pass `fonts: []` to skip the webfont. If you also omit `--font-family` on that payload, the SDK uses `ui-sans-serif, system-ui, sans-serif` instead of Inter.
+
+- **`cssSrc`** — an `https:` stylesheet URL that declares `@font-face` (Google Fonts CSS, a self-hosted CSS file). The iframe injects `<link rel="stylesheet">`; it does not fetch and inline the CSS.
+- **Custom source** — `family` plus a CSS `src` list of `url("https://…")` / `url(https://…)` and optional `format(…)`. Optional `display` (default `"swap"`), `style`, `weight`, and `unicodeRange`.
+
+### Rules
+
+Per-part CSS, keyed by Stripe-style class names. The iframe maps these onto its own slots; you cannot target the iframe DOM from the host page. Pair `fontFamily` with `appearance.fonts` so the face is loaded.
+
+```tsx
+appearance={{
+  fonts: [
+    { cssSrc: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" },
+    { cssSrc: "https://fonts.googleapis.com/css2?family=Source+Serif+4&display=swap" },
+  ],
+  themeVariables: {
+    "--font-family": "Inter, ui-sans-serif, system-ui, sans-serif",
+  },
+  rules: {
+    ".Label": { fontFamily: "Source Serif 4, ui-serif, serif" },
+    ".Input": { fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" },
+    ".Input--invalid": { boxShadow: "0 0 0 2px oklch(0.55 0.245 27.325)" },
+  },
+}}
+```
+
+`rules` uses the same **replace** model as `themeVariables` and `fonts`: omit `rules` to keep the previous set; pass a new object to replace it (`{}` clears). Unknown class names and properties are ignored.
+
+Rules override `themeVariables` for the properties they set (Stripe). `--input-height` / `--floating-input-height` are a **minimum**; `.Input` `padding`, `fontSize`, and `lineHeight` can grow the field. Rule values may reference allowlisted tokens as `var(--primary)` (no fallback argument).
+
+The host skeleton (shown until `UPDATED_APPEARANCE`, or 1.5s after `IFRAME_READY` if appearance never acks) copies `themeVariables` and resting **`.Input` / `.Label`** declarations (the same allowlisted properties as iframe rules). It does not inject webfonts: it uses `--font-family` / `fontFamily` when that face is already on the host page, and falls back to `ui-sans-serif, system-ui, sans-serif`. Hover, invalid, placeholder, dropdown, and radio rules have no skeleton equivalent. Floating labels sit inside the control, so `.Label` / `.Label--floating` do not change skeleton height.
+
+| Selector | Targets |
+| --- | --- |
+| `.Input` | Text fields, country select, state trigger |
+| `.Input:hover`, `.Input:focus`, `.Input:disabled` | Those controls in the given state |
+| `.Input--invalid` | Invalid text fields / selects |
+| `.Input::placeholder` | Input placeholders |
+| `.Label` | All labels (above, floating, radio option text, group titles) |
+| `.Label--floating` | Extra styles on floating labels (overrides `.Label`) |
+| `.Error` | Field-level error text |
+| `.Dropdown` | State list panel |
+| `.DropdownItem` | State list rows |
+| `.DropdownItem--highlight` | Highlighted state row |
+| `.RadioIcon` | Bank radio circle |
+| `.RadioIcon--checked` | Checked radio circle |
+| `.RadioIconInner` | Radio filled dot |
+
+Allowed declaration keys (camelCase): `fontFamily`, `fontSize`, `fontWeight`, `fontStyle`, `lineHeight`, `letterSpacing`, `textTransform`, `color`, `backgroundColor`, `border`, `borderColor`, `borderWidth`, `borderStyle`, `borderRadius`, `boxShadow`, `outline`, `padding`, `margin`, `opacity`. Values cannot include `url()`, `@font-face`, `<`, `>`, `\`, or `var()` except `var(--token)` for an allowlisted theme variable (`--primary`, `--input-height`, …).
 
 ### Label placement
 
@@ -154,6 +216,7 @@ Radio groups (e.g. account type) always use an above-style group label regardles
 | `--ring`                           | Focus ring and outline color (inputs)                    | `oklch(0.708 0 0)`              |
 | `--ring-width`                     | Focus ring width                                         | `3px`                           |
 | `--radius`                         | Base border-radius (derived into sm/md/lg/xl)            | `0.625rem`                      |
+| `--font-family`                    | Font stack for the iframe UI                             | `Inter, ui-sans-serif, system-ui, sans-serif` |
 
 ## Examples
 
@@ -492,7 +555,7 @@ Focus a named control inside the card or bank iframe. No-op if the field is not 
 
 ### `AmosCreditCardPaymentMethodForm`
 
-Renders the secure credit card iframe form. A field-shaped skeleton is shown immediately and replaced by the iframe once appearance is applied.
+Renders the secure credit card iframe form. A field-shaped skeleton is shown immediately (sized from `appearance`, including resting `.Input` / `.Label` rules) and replaced by the iframe once appearance is applied.
 
 **Required props:**
 
@@ -500,7 +563,7 @@ Renders the secure credit card iframe form. A field-shaped skeleton is shown imm
 
 **Optional props:**
 
-- `appearance` (`{ themeVariables?: Partial<Record<ThemeVariable, string>>; labels?: "above" | "floating" | "placeholder" }`) — appearance overrides for the iframe UI (see [Appearance](#appearance))
+- `appearance` (`{ themeVariables?: Partial<Record<ThemeVariable, string>>; labels?: "above" | "floating" | "placeholder"; fonts?: FontSource[]; rules?: Partial<Record<AppearanceRuleSelector, AppearanceRuleDeclarations>> }`) — appearance overrides for the iframe UI (see [Appearance](#appearance))
 
 - `additionalFields` (`{ cardholderName: boolean }`) — set `additionalFields={{ cardholderName: true }}` to render the cardholder name field in the iframe (`false` by default)
 - `billingAddressRequirement` (`"country" | "full"`, defaults to `"country"`) — how much billing address the iframe collects. `country` collects country / region and, for CA / PR / GB / US, a postal code (labeled ZIP for the United States). `full` shows a full street address form with Smarty autocomplete.
@@ -515,7 +578,7 @@ Enter in a card or bank iframe field submits the enclosing host `<form>` via `re
 
 ### `AmosBankAccountPaymentMethodForm`
 
-Renders the secure bank account iframe form. A field-shaped skeleton is shown immediately and replaced by the iframe once appearance is applied.
+Renders the secure bank account iframe form. A field-shaped skeleton is shown immediately (sized from `appearance`, including resting `.Input` / `.Label` rules) and replaced by the iframe once appearance is applied.
 
 When `requireAchVerification` is true (or `intent` is `"setup"`), and the render token allows verification, the SDK hides the routing/account iframe and mounts [Plaid Embedded Institution Search](https://plaid.com/docs/link/embedded-institution-search/) in the parent. Hosts do not proxy Pay API (`GET /merchants`, `POST /plaid_link_tokens`); embed does that with `PAY_API_KEY`. Do not put Plaid secrets in the browser.
 
@@ -615,15 +678,19 @@ Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most int
 
 Re-exports from `@amos.com/amos-js`. Build the iframe `src` URL for each form type. The React components call these for you.
 
-Each URL includes the embed's canonical search params (`token`, `additionalFields`, `billingAddressRequirement`, `intent`) so the embed router does not 307 to fill in defaults. After the iframe `load` event, if `IFRAME_READY` never arrives (stale HTML, missing JS chunk), the SDK rewrites `src` once with `amosReload` so the next document is a real navigation.
+Each URL includes the embed's canonical search params (`token`, `additionalFields`, `billingAddressRequirement`, `intent`) so the embed router does not 307 to fill in defaults. After the iframe `load` event, if `IFRAME_READY` never arrives (stale HTML, missing JS chunk), the SDK rewrites `src` once with `amosReload` so the next document is a real navigation. Appearance is applied after handshake via `UPDATE_APPEARANCE` (the iframe stays hidden until then, or for 1.5s after `IFRAME_READY` if appearance never acks).
 
 ### `updateDefaultValues({ iframe, defaultValues })`
 
 Re-export from `@amos.com/amos-js`. Push name and billing-address defaults into a mounted form. Passing a new `defaultValues` prop on the React component does the same.
 
+### `appearanceWithDefaults(appearance, { initial })`
+
+Re-export from `@amos.com/amos-js`. Fills omitted Inter `fonts` / `--font-family` (or a system stack when `fonts` is `[]`). The React components call this for you via the mount helpers. Only call it yourself if you are wiring `UPDATE_APPEARANCE` by hand: pass `initial: true` only for the first update after `IFRAME_READY`, and pass the merchant's last `appearance` (so a previous `fonts: []` is not overwritten).
+
 ### Exported types
 
-`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `ConfirmPaymentResult`, `ConfirmSetupResult`, `PaymentMethodFormValidityChangeEvent`, `CardBrand`, `PaymentMethodFormCardBrandChangeEvent`, `FormattedGooglePayPaymentData`, `Message`, `Appearance`, `ThemeVariable`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`.
+`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `ConfirmPaymentResult`, `ConfirmSetupResult`, `PaymentMethodFormValidityChangeEvent`, `CardBrand`, `PaymentMethodFormCardBrandChangeEvent`, `FormattedGooglePayPaymentData`, `Message`, `Appearance`, `ThemeVariable`, `FontSource`, `CssFontSource`, `CustomFontSource`, `AppearanceRuleSelector`, `AppearanceRuleDeclarations`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`.
 
 ## Notes and potential gotchas
 
@@ -632,7 +699,7 @@ Re-export from `@amos.com/amos-js`. Push name and billing-address defaults into 
 - **Same components for payment vs setup intents**: `AmosCreditCardPaymentMethodForm` and `AmosBankAccountPaymentMethodForm` support both payment intents and setup intents. The flow differs only by which server call you make and which confirmation function you use (`confirmPayment` vs `confirmSetup`).
 - **Amount format**: for `AmosGooglePayButton` and `AmosApplePayButton`, `amount` is a major-currency decimal string (e.g. `"50.00"` for $50.00). For `components["schemas"]["CreatePaymentIntentInput"]` on the server (card/bank create, and the object the wallet iframe sends to `onConfirm`), `amount` is a number in cents (e.g. `5000`).
 - **Embed host / CSP**: iframes load from `https://js.amos.com` (production) and `https://js-sandbox.amos.com` (sandbox) via `getEmbedOrigin`. Parent pages that pin CSP must allow `frame-src https://js.amos.com https://js-sandbox.amos.com` (and `Permissions-Policy payment=` for those origins) **before** upgrading this package. Older SDK versions still load `embed.amos.com` / `embed-sandbox.amos.com`.
-- **Iframe handshake**: iframe URLs include canonical search params so the embed does not 307. If the document loads but never posts `IFRAME_READY`, the SDK rewrites `src` once with `amosReload`.
+- **Iframe handshake**: iframe URLs include canonical search params so the embed does not 307. If the document loads but never posts `IFRAME_READY`, the SDK rewrites `src` once with `amosReload`. Appearance is applied after handshake; the iframe stays hidden until `UPDATED_APPEARANCE`, or for 1.5s after `IFRAME_READY` if appearance never acks.
 - **Plaid Embedded Link (ACH verification)**: load `cdn.plaid.com` from the **parent** document (see CSP on `AmosBankAccountPaymentMethodForm`). Merchants do not proxy Pay API; the bank iframe mints link tokens. Pass `requireAchVerification` when the host wants Plaid, or `intent="setup"` to always show it, unless the render token disables verification. Confirm still goes through the bank iframe so Amos can attach `plaid` to the payment method.
 - **Apple Pay waiting overlay**: on browsers where Apple's QR handoff opens in a popup (non-Safari), `AmosApplePayButton` shows a fixed full-viewport overlay on the host page. **Cancel payment** is available until the buyer authorizes; after that the overlay shows **Completing your payment…** with no Cancel, then hides when `onConfirm` settles. Avoid stacking other fixed UI above it.
 - **Going framework-free**: if you need to use Amos outside of React (vanilla JS, another framework, etc.), use [`@amos.com/amos-js`](../amos-js) directly.

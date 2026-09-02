@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.14
+
+### Patch Changes
+
+- Autoreload, appearance font and rules
+
 ## 0.11.13
 
 ### Patch Changes
