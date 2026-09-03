@@ -411,9 +411,10 @@ type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
   defaultValues?: PaymentMethodFormDefaultValues;
   /**
    * When true, hide the routing/account iframe and mount Plaid Embedded
-   * Institution Search in the parent. Ignored when `intent` is `"setup"`
-   * (setup always shows Plaid) or when the render token disables
-   * verification.
+   * Institution Search in the parent. A 350px pulse skeleton covers the
+   * slot until Plaid's `onLoad` (1.5s fallback). Ignored when `intent`
+   * is `"setup"` (setup always shows Plaid) or when the render token
+   * disables verification.
    *
    * @default false
    */
