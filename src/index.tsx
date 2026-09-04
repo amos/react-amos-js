@@ -416,6 +416,9 @@ type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
    * is `"setup"` (setup always shows Plaid) or when the render token
    * disables verification.
    *
+   * Changing this prop hides or shows Link; it does not remount the
+   * bank form or destroy the Embedded handler.
+   *
    * @default false
    */
   requireAchVerification?: boolean;
@@ -458,6 +461,8 @@ export function AmosBankAccountPaymentMethodForm({
       onValidityChange,
       onEscapeKeyPressed,
     },
+    // `requireAchVerification` is an update, not a remount: amos-js hides
+    // Embedded Link instead of destroying it when the flag flips.
     remountDeps: [renderToken, billingAddressRequirement, intent],
     iframePassthrough: { style, ...rest },
     updateDeps: [

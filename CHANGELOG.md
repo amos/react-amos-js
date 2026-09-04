@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.18
+
+### Patch Changes
+
+- Keep Plaid after requireAchVerification toggle
+
 ## 0.11.17
 
 ### Patch Changes
