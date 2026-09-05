@@ -16,7 +16,7 @@ npm install @amos.com/react-amos-js @amos.com/node
 
 - React components for the iframe payment method forms: `AmosCreditCardPaymentMethodForm`, `AmosBankAccountPaymentMethodForm`, `AmosGooglePayButton`, `AmosApplePayButton`.
 - React-flavoured iframe message helpers that accept a React `ref`: `validateForm({ iframeRef })`, `confirmPayment({ iframeRef, token })`, `confirmSetup({ iframeRef, token })`, `resetForm({ iframeRef })`, `focusField({ iframeRef, field })`.
-- Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `formatGooglePayPaymentData`, `resetForm`, `focusField`, `ConfirmPaymentResult`, `ConfirmSetupResult`, `FormattedGooglePayPaymentData`, `Appearance`, `FontSource`, `AppearanceRuleSelector`, `Message`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, etc.
+- Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `formatGooglePayPaymentData`, `resetForm`, `focusField`, `ConfirmPaymentResult`, `ConfirmSetupResult`, `FormattedGooglePayPaymentData`, `WalletCustomerCreateAttributes`, `WalletPostalAddress`, `WalletContactRequirements`, `Appearance`, `FontSource`, `AppearanceRuleSelector`, `Message`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, etc.
 
 > **Note:** `@amos.com/react-amos-js` is the client-side half of the Amos integration. For end-to-end payment processing you also need `@amos.com/node` on your server (creating payment intents, handling webhooks, etc.). The same `@amos.com/node` package is listed as a peer dependency so you can import its OpenAPI types in client-side TypeScript code.
 
@@ -319,6 +319,7 @@ import {
   AmosApplePayButton,
   AmosGooglePayButton,
   type ConfirmPaymentResult,
+  type WalletCustomerCreateAttributes,
 } from "@amos.com/react-amos-js";
 import type { components } from "@amos.com/node";
 
@@ -327,12 +328,14 @@ async function createPaymentIntentToken({
   customerCreateAttributes,
 }: {
   paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
-  customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
+  customerCreateAttributes: WalletCustomerCreateAttributes;
 }): Promise<string> {
   const response = await fetch("/api/payment-intents", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      // Map WalletCustomerCreateAttributes on your server — it is not
+      // CreateCustomerInput.
       customer: customerCreateAttributes,
       paymentIntent: paymentIntentCreateAttributes,
     }),
@@ -353,7 +356,7 @@ function CheckoutWallets({ renderToken }: { renderToken: string }) {
     confirmPayment,
   }: {
     paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
-    customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
+    customerCreateAttributes: WalletCustomerCreateAttributes;
     confirmPayment: (token: string) => Promise<ConfirmPaymentResult>;
   }): Promise<ConfirmPaymentResult> {
     try {
@@ -398,7 +401,9 @@ function CheckoutWallets({ renderToken }: { renderToken: string }) {
 }
 ```
 
-Do not call `validateForm` from the host in an express flow — create a payment intent inside `onConfirm`, then `await confirmPayment(token)`. Size the mount slot; omitted `buttonProps` keep paint defaults and fill the iframe.
+Do not call `validateForm` from the host in an express flow — create a payment intent inside `onConfirm`, then `await confirmPayment(token)`. Size the mount slot; omitted `buttonProps` keep paint defaults and fill the iframe. Name, email, and billing address are always collected. Pass `phoneRequired: true` if you still need a phone (Apple Pay previously always collected one). Pass `shippingAddressRequired: true` to collect a shipping postal address.
+
+`customerCreateAttributes` is `WalletCustomerCreateAttributes`, not `CreateCustomerInput`. Nested `billingAddress` / `shippingAddress` use Amos billing field names (`address_line1`, `state`, `postal_code`). Top-level `line1` / `line2` / `city` / `region` / `postalCode` / `country` still duplicate billing so existing Apple Pay hosts keep working — prefer `billingAddress`. `phone` and `shippingAddress` are omitted unless you opted in.
 
 On Safari, Apple Pay uses the native payment sheet. On other browsers, Apple's QR handoff opens in a popup (`pay.apple.com`); while that popup is open, the SDK shows a waiting overlay with **Cancel payment**. After the buyer authorizes, Cancel is removed and the overlay shows **Completing your payment…** until `onConfirm` settles.
 
@@ -620,12 +625,14 @@ Renders the secure Google Pay iframe button (express checkout flow). A button-sh
 - `renderToken` (`string`)
 - `amount` (`string`) — major-currency decimal string shown in the wallet sheet (e.g. `"50.00"` for $50.00). The iframe converts this to cents in `paymentIntentCreateAttributes.amount`.
 - `merchantName` (`string`)
-- `onConfirm` (callback receiving `{ paymentIntentCreateAttributes, customerCreateAttributes, confirmPayment }`. Create a payment intent, then `return confirmPayment(token)` — `Promise<ConfirmPaymentResult>`)
+- `onConfirm` (callback receiving `{ paymentIntentCreateAttributes, customerCreateAttributes, confirmPayment }`. Create a payment intent, then `return confirmPayment(token)` — `Promise<ConfirmPaymentResult>`). `customerCreateAttributes` is `WalletCustomerCreateAttributes`, not `CreateCustomerInput` — map it on your server. Nested `billingAddress` / `shippingAddress` use Amos billing field names (`address_line1`, `state`, `postal_code`). Top-level `line1` / `line2` / `city` / `region` / `postalCode` / `country` still duplicate billing for existing Apple Pay hosts; prefer `billingAddress`. `phone` and `shippingAddress` are omitted unless you passed `phoneRequired` / `shippingAddressRequired`.
 
 **Optional props:**
 
 - `height` (`string`, defaults to `"48px"`) — painted button height. CSS length (e.g. `"48px"`).
 - `buttonProps` — native Google Pay button options. Omitted fields keep `"plain"` / `"fill"`. The button fills the iframe; size the mount slot, not the button. Compact: `buttonProps={{ buttonSizeMode: "static", style: { width: "240px" } }}`.
+- `phoneRequired` (`boolean`, defaults to `false`) — collect a phone number in the Google Pay sheet.
+- `shippingAddressRequired` (`boolean`, defaults to `false`) — collect a shipping postal address. Name, email, and billing address are always required.
 - `iframeProps` — applied to the host-page `<iframe>` (e.g. `className`, `style`, `id`). Use CSS lengths with units in `style` (`{ borderRadius: "8px" }`). Amos does not ship Tailwind — `className` only works if the host page defines those classes.
 
 ```tsx
@@ -640,10 +647,12 @@ Renders the secure Google Pay iframe button (express checkout flow). A button-sh
 
 Renders the secure Apple Pay iframe button (express checkout flow). Same required props and callbacks as `AmosGooglePayButton`. A button-shaped skeleton is shown immediately and replaced by the iframe once appearance is applied.
 
-**Optional visual props:**
+**Optional props:**
 
 - `height` (`string`, defaults to `"48px"`) — painted button height. CSS length (e.g. `"48px"`). Apple ignores CSS `height`; Amos maps this for you.
 - `buttonProps` — native `<apple-pay-button>` attributes. Omitted fields keep Apple's `black` / `plain` / `en-US`. The button fills the iframe; size the mount slot, not the button. `style.width` also updates `--apple-pay-button-width` unless you set that custom property yourself.
+- `phoneRequired` (`boolean`, defaults to `false`) — collect a phone number in the Apple Pay sheet. Pass `true` to keep the previous Apple Pay behavior of always collecting a phone.
+- `shippingAddressRequired` (`boolean`, defaults to `false`) — collect a shipping postal address. Name, email, and billing address are always required.
 - `iframeProps` — host-page `<iframe>` chrome (same as Google Pay).
 
 ```tsx
@@ -662,7 +671,7 @@ Only Amos domains need Apple merchant registration. The button and `ApplePaySess
 
 ### `formatGooglePayPaymentData({ paymentData })`
 
-Transforms Google Pay payment data into an Amos-compatible `paymentMethod` payload. Use this when integrating with the raw Google Pay API (e.g. `@google-pay/button-react`) instead of `AmosGooglePayButton` — `AmosGooglePayButton` handles payment data internally and does not require this helper.
+Transforms Google Pay payment data into an Amos-compatible `paymentMethod` payload. Use this when integrating with the raw Google Pay API (e.g. `@google-pay/button-react`) instead of `AmosGooglePayButton` — `AmosGooglePayButton` handles payment data internally and does not require this helper. Street and name come from CARD `billingAddress`; email from the top-level field; phone from shipping when present, otherwise billing.
 
 **Parameters:**
 
@@ -690,7 +699,7 @@ Re-export from `@amos.com/amos-js`. Fills omitted Inter `fonts` / `--font-family
 
 ### Exported types
 
-`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `ConfirmPaymentResult`, `ConfirmSetupResult`, `PaymentMethodFormValidityChangeEvent`, `CardBrand`, `PaymentMethodFormCardBrandChangeEvent`, `FormattedGooglePayPaymentData`, `Message`, `Appearance`, `ThemeVariable`, `FontSource`, `CssFontSource`, `CustomFontSource`, `AppearanceRuleSelector`, `AppearanceRuleDeclarations`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`.
+`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `ConfirmPaymentResult`, `ConfirmSetupResult`, `PaymentMethodFormValidityChangeEvent`, `CardBrand`, `PaymentMethodFormCardBrandChangeEvent`, `FormattedGooglePayPaymentData`, `WalletCustomerCreateAttributes`, `WalletPostalAddress`, `WalletContactRequirements`, `Message`, `Appearance`, `ThemeVariable`, `FontSource`, `CssFontSource`, `CustomFontSource`, `AppearanceRuleSelector`, `AppearanceRuleDeclarations`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`.
 
 ## Notes and potential gotchas
 

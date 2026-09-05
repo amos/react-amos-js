@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.19
+
+### Patch Changes
+
+- Wallet `onConfirm` receives `WalletCustomerCreateAttributes`. Name, email, and billing are always collected; `phoneRequired` / `shippingAddressRequired` default to false.
+
 ## 0.11.18
 
 ### Patch Changes

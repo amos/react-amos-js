@@ -21,6 +21,7 @@ import {
   type PaymentMethodFormDefaultValues,
   type PaymentMethodFormField,
   resolveWalletButtonSkeletonBorderRadius,
+  type WalletCustomerCreateAttributes,
 } from "@amos.com/amos-js";
 import type { components } from "@amos.com/node";
 import {
@@ -501,11 +502,24 @@ type AmosGooglePayButtonProps = {
    * mount slot, not the button.
    */
   buttonProps?: GooglePayButtonElementProps;
+  /**
+   * Collect a phone number in the Google Pay sheet.
+   * @default false
+   */
+  phoneRequired?: boolean;
+  /**
+   * Collect a shipping postal address. Name, email, and billing
+   * address are always required.
+   * @default false
+   */
+  shippingAddressRequired?: boolean;
   /** Props applied to the host-page `<iframe>` element. */
   iframeProps?: IframePassthroughProps;
   /**
    * Called when the buyer authorizes in the Google Pay sheet. Create a
    * payment intent on your server, then `await confirmPayment(token)`.
+   * `customerCreateAttributes` is `WalletCustomerCreateAttributes`, not
+   * Amos `CreateCustomerInput`.
    */
   onConfirm: ({
     paymentIntentCreateAttributes,
@@ -513,7 +527,7 @@ type AmosGooglePayButtonProps = {
     confirmPayment,
   }: {
     paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
-    customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
+    customerCreateAttributes: WalletCustomerCreateAttributes;
     confirmPayment: (token: string) => Promise<ConfirmPaymentResult>;
   }) => Promise<ConfirmPaymentResult>;
 };
@@ -530,6 +544,8 @@ export function AmosGooglePayButton({
   merchantName,
   height = "48px",
   buttonProps,
+  phoneRequired,
+  shippingAddressRequired,
   iframeProps,
   onConfirm,
 }: AmosGooglePayButtonProps) {
@@ -549,11 +565,21 @@ export function AmosGooglePayButton({
       merchantName,
       height,
       buttonProps,
+      phoneRequired,
+      shippingAddressRequired,
       onConfirm,
     },
     remountDeps: [renderToken],
     iframePassthrough: iframeProps ?? {},
-    updateDeps: [amount, merchantName, height, buttonProps, onConfirm],
+    updateDeps: [
+      amount,
+      merchantName,
+      height,
+      buttonProps,
+      phoneRequired,
+      shippingAddressRequired,
+      onConfirm,
+    ],
   });
 
   return (
@@ -587,11 +613,24 @@ type AmosApplePayButtonProps = {
    * button fills the iframe — size the mount slot, not the button.
    */
   buttonProps?: ApplePayButtonElementProps;
+  /**
+   * Collect a phone number in the Apple Pay sheet.
+   * @default false
+   */
+  phoneRequired?: boolean;
+  /**
+   * Collect a shipping postal address. Name, email, and billing
+   * address are always required.
+   * @default false
+   */
+  shippingAddressRequired?: boolean;
   /** Props applied to the host-page `<iframe>` element. */
   iframeProps?: IframePassthroughProps;
   /**
    * Called when the buyer authorizes in the Apple Pay sheet. Create a
    * payment intent on your server, then `await confirmPayment(token)`.
+   * `customerCreateAttributes` is `WalletCustomerCreateAttributes`, not
+   * Amos `CreateCustomerInput`.
    */
   onConfirm: ({
     paymentIntentCreateAttributes,
@@ -599,7 +638,7 @@ type AmosApplePayButtonProps = {
     confirmPayment,
   }: {
     paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
-    customerCreateAttributes: components["schemas"]["CreateCustomerInput"];
+    customerCreateAttributes: WalletCustomerCreateAttributes;
     confirmPayment: (token: string) => Promise<ConfirmPaymentResult>;
   }) => Promise<ConfirmPaymentResult>;
 };
@@ -616,6 +655,8 @@ export function AmosApplePayButton({
   merchantName,
   height = "48px",
   buttonProps,
+  phoneRequired,
+  shippingAddressRequired,
   iframeProps,
   onConfirm,
 }: AmosApplePayButtonProps) {
@@ -635,11 +676,21 @@ export function AmosApplePayButton({
       merchantName,
       height,
       buttonProps,
+      phoneRequired,
+      shippingAddressRequired,
       onConfirm,
     },
     remountDeps: [renderToken],
     iframePassthrough: iframeProps ?? {},
-    updateDeps: [amount, merchantName, height, buttonProps, onConfirm],
+    updateDeps: [
+      amount,
+      merchantName,
+      height,
+      buttonProps,
+      phoneRequired,
+      shippingAddressRequired,
+      onConfirm,
+    ],
   });
 
   return (
