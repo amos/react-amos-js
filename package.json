@@ -57,7 +57,7 @@
     "vite-plugin-dts": "5.0.3"
   },
   "dependencies": {
-    "@amos.com/amos-js": "0.11.22",
+    "@amos.com/amos-js": "0.11.23",
     "@types/googlepay": "0.7.12"
   },
   "peerDependencies": {
