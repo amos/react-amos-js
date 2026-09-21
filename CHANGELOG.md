@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.21
+
+### Patch Changes
+
+- Update @amos.com/amos-js and @amos.com/node
+
 ## 0.11.20
 
 ### Patch Changes
