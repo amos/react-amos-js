@@ -1,5 +1,12 @@
 # @amos.com/react-amos-js
 
+## 0.11.22
+
+### Patch Changes
+
+- 7605b4b: Follow `@amos.com/amos-js` 0.11.23: cover the payment iframe with the skeleton instead of hiding it, so WebKit runs embed JS, and match embed messages by origin and iframe name when `contentWindow` identity changes.
+- Add onPostalCodeChange to the credit-card and bank-account forms so hosts can react when the customer commits or clears a billing postal code.
+
 ## 0.11.21
 
 ### Patch Changes

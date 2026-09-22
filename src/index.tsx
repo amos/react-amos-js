@@ -296,6 +296,35 @@ function WalletButtonSlot({
   );
 }
 
+type PostalCodeChangeHandler = (event: {
+  postalCode: string | null;
+  country: string;
+}) => void;
+
+/**
+ * The installed `@amos.com/amos-js` types may not include
+ * `onPostalCodeChange` until that package is published. The mount
+ * parameter accepts the extra field; the runtime object still carries
+ * it into `attachPaymentMethodFormListeners`.
+ */
+function mountCreditCardPaymentMethodForm(
+  container: HTMLElement,
+  options: Parameters<typeof mountAmosCreditCardPaymentMethodForm>[1] & {
+    onPostalCodeChange?: PostalCodeChangeHandler;
+  },
+) {
+  return mountAmosCreditCardPaymentMethodForm(container, options);
+}
+
+function mountBankAccountPaymentMethodForm(
+  container: HTMLElement,
+  options: Parameters<typeof mountAmosBankAccountPaymentMethodForm>[1] & {
+    onPostalCodeChange?: PostalCodeChangeHandler;
+  },
+) {
+  return mountAmosBankAccountPaymentMethodForm(container, options);
+}
+
 type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
   renderToken: string;
   appearance?: Appearance;
@@ -320,6 +349,12 @@ type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
       | null;
   }) => void;
   /**
+   * Called when the customer commits a billing postal code, or clears
+   * one. `postalCode` is null when a finished code becomes incomplete.
+   * Incomplete keystrokes and `defaultValues` writes are omitted.
+   */
+  onPostalCodeChange?: PostalCodeChangeHandler;
+  /**
    * Called when the customer presses Escape in the iframe. PCI-safe —
    * no field values. Use this to close a host modal that contains the
    * iframe. Not fired while an iframe dropdown or address suggestion
@@ -343,6 +378,7 @@ export function AmosCreditCardPaymentMethodForm({
   appearance,
   onValidityChange,
   onCardBrandChanged,
+  onPostalCodeChange,
   onEscapeKeyPressed,
   additionalFields = { cardholderName: false },
   billingAddressRequirement = "country",
@@ -355,7 +391,7 @@ export function AmosCreditCardPaymentMethodForm({
   useAmosEmbed({
     containerRef,
     iframeRef: ref as ForwardedIframeRef,
-    mount: mountAmosCreditCardPaymentMethodForm,
+    mount: mountCreditCardPaymentMethodForm,
     options: {
       renderToken,
       appearance,
@@ -364,6 +400,7 @@ export function AmosCreditCardPaymentMethodForm({
       defaultValues,
       onValidityChange,
       onCardBrandChanged,
+      onPostalCodeChange,
       onEscapeKeyPressed,
     },
     remountDeps: [
@@ -379,6 +416,7 @@ export function AmosCreditCardPaymentMethodForm({
       defaultValues,
       onValidityChange,
       onCardBrandChanged,
+      onPostalCodeChange,
       onEscapeKeyPressed,
     ],
   });
@@ -403,6 +441,12 @@ type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
    * showing.
    */
   onEscapeKeyPressed?: () => void;
+  /**
+   * Called when the customer commits a billing postal code, or clears
+   * one. `postalCode` is null when a finished code becomes incomplete.
+   * Incomplete keystrokes and `defaultValues` writes are omitted.
+   */
+  onPostalCodeChange?: PostalCodeChangeHandler;
   billingAddressRequirement?: BillingAddressRequirement;
   /**
    * Seed account holder name and billing address. Provided keys
@@ -438,6 +482,7 @@ export function AmosBankAccountPaymentMethodForm({
   renderToken,
   appearance,
   onValidityChange,
+  onPostalCodeChange,
   onEscapeKeyPressed,
   billingAddressRequirement = "country",
   defaultValues,
@@ -451,7 +496,7 @@ export function AmosBankAccountPaymentMethodForm({
   useAmosEmbed({
     containerRef,
     iframeRef: ref as ForwardedIframeRef,
-    mount: mountAmosBankAccountPaymentMethodForm,
+    mount: mountBankAccountPaymentMethodForm,
     options: {
       renderToken,
       appearance,
@@ -460,6 +505,7 @@ export function AmosBankAccountPaymentMethodForm({
       requireAchVerification,
       intent,
       onValidityChange,
+      onPostalCodeChange,
       onEscapeKeyPressed,
     },
     // `requireAchVerification` is an update, not a remount: amos-js hides
@@ -473,6 +519,7 @@ export function AmosBankAccountPaymentMethodForm({
       requireAchVerification,
       intent,
       onValidityChange,
+      onPostalCodeChange,
       onEscapeKeyPressed,
     ],
   });
