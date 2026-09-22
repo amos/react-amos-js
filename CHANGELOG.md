@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.23
+
+### Patch Changes
+
+- Follow `@amos.com/amos-js` 0.11.25: the connected Plaid account is a bordered row with an outline Disconnect button. Host call sites are unchanged. No new appearance variables or rules.
+
 ## 0.11.22
 
 ### Patch Changes
