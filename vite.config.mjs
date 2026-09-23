@@ -38,10 +38,8 @@ export default defineConfig({
         globals: {
           react: "React",
         },
+        keepNames: true,
       },
     },
-  },
-  esbuild: {
-    keepNames: true,
   },
 });
