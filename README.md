@@ -10,7 +10,7 @@ It is a thin wrapper around [`@amos.com/amos-js`](../amos-js) that adapts the fr
 npm install @amos.com/react-amos-js @amos.com/node
 ```
 
-`@amos.com/node` is a **peer dependency** (requires `>=0.1.57`). Install it in your app for OpenAPI schema types (for example `components["schemas"]["CreatePaymentIntentInput"]`) used in the examples below, and for your server-side Amos API client. React (`^17`, `^18`, or `^19`) is also a peer dependency.
+`@amos.com/node` is a **peer dependency** (requires `>=0.1.65`). Install it in your app for OpenAPI schema types (for example `components["schemas"]["CreatePaymentIntentInput"]`) used in the examples below, and for your server-side Amos API client. React (`^17`, `^18`, or `^19`) is also a peer dependency.
 
 ## What it gives you
 
@@ -702,7 +702,7 @@ Re-export from `@amos.com/amos-js`. Fills omitted Inter `fonts` / `--font-family
 
 ### Exported types
 
-`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `ConfirmPaymentResult`, `ConfirmSetupResult`, `PaymentMethodFormValidityChangeEvent`, `CardBrand`, `PaymentMethodFormCardBrandChangeEvent`, `FormattedGooglePayPaymentData`, `WalletCustomerCreateAttributes`, `WalletPostalAddress`, `WalletContactRequirements`, `Message`, `Appearance`, `ThemeVariable`, `FontSource`, `CssFontSource`, `CustomFontSource`, `AppearanceRuleSelector`, `AppearanceRuleDeclarations`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`.
+`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `ConfirmPaymentResult`, `ConfirmSetupResult`, `isConfirmTimeout`, `CONFIRM_TIMEOUT_MS`, `PaymentMethodFormValidityChangeEvent`, `CardBrand`, `PaymentMethodFormCardBrandChangeEvent`, `PaymentMethodFormPostalCodeChangeEvent`, `FormattedGooglePayPaymentData`, `WalletCustomerCreateAttributes`, `WalletPostalAddress`, `WalletContactRequirements`, `Message`, `Appearance`, `ThemeVariable`, `FontSource`, `CssFontSource`, `CustomFontSource`, `AppearanceRuleSelector`, `AppearanceRuleDeclarations`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`.
 
 ## Notes and potential gotchas
 

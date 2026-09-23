@@ -20,6 +20,7 @@ import {
   mountAmosGooglePayButton,
   type PaymentMethodFormDefaultValues,
   type PaymentMethodFormField,
+  type PaymentMethodFormPostalCodeChangeEvent,
   resolveWalletButtonSkeletonBorderRadius,
   type WalletCustomerCreateAttributes,
 } from "@amos.com/amos-js";
@@ -296,35 +297,6 @@ function WalletButtonSlot({
   );
 }
 
-type PostalCodeChangeHandler = (event: {
-  postalCode: string | null;
-  country: string;
-}) => void;
-
-/**
- * The installed `@amos.com/amos-js` types may not include
- * `onPostalCodeChange` until that package is published. The mount
- * parameter accepts the extra field; the runtime object still carries
- * it into `attachPaymentMethodFormListeners`.
- */
-function mountCreditCardPaymentMethodForm(
-  container: HTMLElement,
-  options: Parameters<typeof mountAmosCreditCardPaymentMethodForm>[1] & {
-    onPostalCodeChange?: PostalCodeChangeHandler;
-  },
-) {
-  return mountAmosCreditCardPaymentMethodForm(container, options);
-}
-
-function mountBankAccountPaymentMethodForm(
-  container: HTMLElement,
-  options: Parameters<typeof mountAmosBankAccountPaymentMethodForm>[1] & {
-    onPostalCodeChange?: PostalCodeChangeHandler;
-  },
-) {
-  return mountAmosBankAccountPaymentMethodForm(container, options);
-}
-
 type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
   renderToken: string;
   appearance?: Appearance;
@@ -353,7 +325,7 @@ type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
    * one. `postalCode` is null when a finished code becomes incomplete.
    * Incomplete keystrokes and `defaultValues` writes are omitted.
    */
-  onPostalCodeChange?: PostalCodeChangeHandler;
+  onPostalCodeChange?: (event: PaymentMethodFormPostalCodeChangeEvent) => void;
   /**
    * Called when the customer presses Escape in the iframe. PCI-safe —
    * no field values. Use this to close a host modal that contains the
@@ -391,7 +363,7 @@ export function AmosCreditCardPaymentMethodForm({
   useAmosEmbed({
     containerRef,
     iframeRef: ref as ForwardedIframeRef,
-    mount: mountCreditCardPaymentMethodForm,
+    mount: mountAmosCreditCardPaymentMethodForm,
     options: {
       renderToken,
       appearance,
@@ -446,7 +418,7 @@ type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
    * one. `postalCode` is null when a finished code becomes incomplete.
    * Incomplete keystrokes and `defaultValues` writes are omitted.
    */
-  onPostalCodeChange?: PostalCodeChangeHandler;
+  onPostalCodeChange?: (event: PaymentMethodFormPostalCodeChangeEvent) => void;
   billingAddressRequirement?: BillingAddressRequirement;
   /**
    * Seed account holder name and billing address. Provided keys
@@ -496,7 +468,7 @@ export function AmosBankAccountPaymentMethodForm({
   useAmosEmbed({
     containerRef,
     iframeRef: ref as ForwardedIframeRef,
-    mount: mountBankAccountPaymentMethodForm,
+    mount: mountAmosBankAccountPaymentMethodForm,
     options: {
       renderToken,
       appearance,
