@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.25
+
+### Patch Changes
+
+- Follow `@amos.com/amos-js` 0.11.27: keep the payment iframe at opacity 0 and its default pixel height while the skeleton shows, and reveal it 1.5s after mount if appearance never acks.
+
 ## 0.11.24
 
 ### Patch Changes
