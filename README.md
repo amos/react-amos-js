@@ -141,7 +141,7 @@ appearance={{
 
 Rules override `themeVariables` for the properties they set (Stripe). `--input-height` / `--floating-input-height` are a **minimum**; `.Input` `padding`, `fontSize`, and `lineHeight` can grow the field. Floated input text padding is `--floating-value-padding-top` and `--floating-value-padding-bottom`. Rule values may reference allowlisted tokens as `var(--primary)` (no fallback argument).
 
-The host skeleton (shown until `UPDATED_APPEARANCE`, or 1.5s after mount if appearance never acks) copies `themeVariables` and resting **`.Input` / `.Label`** declarations (the same allowlisted properties as iframe rules). The iframe stays `opacity: 0` at its default pixel height underneath, so the skeleton is the only thing visible and WebKit still runs iframe JS. It does not inject webfonts: it uses `--font-family` / `fontFamily` when that face is already on the host page, and falls back to `ui-sans-serif, system-ui, sans-serif`. Hover, invalid, placeholder, dropdown, and radio rules have no skeleton equivalent. Floating labels sit inside the control, so `.Label` / `.Label--floating` do not change skeleton height.
+The host skeleton (shown until `UPDATED_APPEARANCE`, or 1.5s after mount if appearance never acks) copies `themeVariables` and resting **`.Input` / `.Label`** declarations (the same allowlisted properties as iframe rules). Its background is `--background`, so it covers the iframe. The iframe stays at opacity 1 and its default pixel height underneath, and is `inert` until reveal, so WebKit lays it out and still runs iframe JS. It does not inject webfonts: it uses `--font-family` / `fontFamily` when that face is already on the host page, and falls back to `ui-sans-serif, system-ui, sans-serif`. Hover, invalid, placeholder, dropdown, and radio rules have no skeleton equivalent. Floating labels sit inside the control, so `.Label` / `.Label--floating` do not change skeleton height.
 
 | Selector | Targets |
 | --- | --- |
@@ -562,7 +562,7 @@ Focus a named control inside the card or bank iframe. No-op if the field is not 
 
 ### `AmosCreditCardPaymentMethodForm`
 
-Renders the secure credit card iframe form. A field-shaped skeleton is shown immediately (sized from `appearance`, including resting `.Input` / `.Label` rules). The iframe stays `opacity: 0` at its default pixel height until appearance is applied, or for 1.5s after mount if appearance never acks.
+Renders the secure credit card iframe form. A field-shaped skeleton with an opaque background is shown immediately (sized from `appearance`, including resting `.Input` / `.Label` rules). The iframe stays at opacity 1 and its default pixel height, and is `inert`, until appearance is applied, or for 1.5s after mount if appearance never acks.
 
 **Required props:**
 
@@ -586,7 +586,7 @@ Enter in a card or bank iframe field submits the enclosing host `<form>` via `re
 
 ### `AmosBankAccountPaymentMethodForm`
 
-Renders the secure bank account iframe form. A field-shaped skeleton is shown immediately (sized from `appearance`, including resting `.Input` / `.Label` rules). The iframe stays `opacity: 0` at its default pixel height until appearance is applied, or for 1.5s after mount if appearance never acks.
+Renders the secure bank account iframe form. A field-shaped skeleton with an opaque background is shown immediately (sized from `appearance`, including resting `.Input` / `.Label` rules). The iframe stays at opacity 1 and its default pixel height, and is `inert`, until appearance is applied, or for 1.5s after mount if appearance never acks.
 
 When `requireAchVerification` is true (or `intent` is `"setup"`), and the render token allows verification, the SDK hides the routing/account iframe and mounts [Plaid Embedded Institution Search](https://plaid.com/docs/link/embedded-institution-search/) in the parent. A **350px pulse skeleton** covers that slot until Plaid's `onLoad` (1.5s fallback). Do not overlay a host loader. Hosts do not proxy Pay API (`GET /merchants`, `POST /plaid_link_tokens`); embed does that with `PAY_API_KEY`. Do not put Plaid secrets in the browser.
 
@@ -623,7 +623,7 @@ Setup (always Plaid, unless the render token disables verification):
 
 ### `AmosGooglePayButton`
 
-Renders the secure Google Pay iframe button (express checkout flow). A button-shaped skeleton is shown immediately. The iframe stays `opacity: 0` at its default pixel height until appearance is applied, or for 1.5s after mount if appearance never acks.
+Renders the secure Google Pay iframe button (express checkout flow). A button-shaped skeleton with an opaque background is shown immediately. The iframe stays at opacity 1 and its default pixel height, and is `inert`, until appearance is applied, or for 1.5s after mount if appearance never acks.
 
 **Required props:**
 
@@ -650,7 +650,7 @@ Renders the secure Google Pay iframe button (express checkout flow). A button-sh
 
 ### `AmosApplePayButton`
 
-Renders the secure Apple Pay iframe button (express checkout flow). Same required props and callbacks as `AmosGooglePayButton`. A button-shaped skeleton is shown immediately. The iframe stays `opacity: 0` at its default pixel height until appearance is applied, or for 1.5s after mount if appearance never acks.
+Renders the secure Apple Pay iframe button (express checkout flow). Same required props and callbacks as `AmosGooglePayButton`. A button-shaped skeleton with an opaque background is shown immediately. The iframe stays at opacity 1 and its default pixel height, and is `inert`, until appearance is applied, or for 1.5s after mount if appearance never acks.
 
 **Optional props:**
 
@@ -692,7 +692,7 @@ Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most int
 
 Re-exports from `@amos.com/amos-js`. Build the iframe `src` URL for each form type. The React components call these for you.
 
-Each URL includes the embed's canonical search params (`token`, `additionalFields`, `billingAddressRequirement`, `intent`) so the embed router does not 307 to fill in defaults. After the iframe `load` event, if `IFRAME_READY` never arrives (stale HTML, missing JS chunk), the SDK rewrites `src` once with `amosReload` so the next document is a real navigation. Appearance is applied after handshake via `UPDATE_APPEARANCE`. A host-page skeleton is shown until then. The iframe stays `opacity: 0` at its default pixel height, and is revealed 1.5s after mount if appearance never acks.
+Each URL includes the embed's canonical search params (`token`, `additionalFields`, `billingAddressRequirement`, `intent`) so the embed router does not 307 to fill in defaults. After the iframe `load` event, if `IFRAME_READY` never arrives (stale HTML, missing JS chunk), the SDK rewrites `src` once with `amosReload` so the next document is a real navigation. Appearance is applied after handshake via `UPDATE_APPEARANCE`. A host-page skeleton with an opaque background covers the iframe until then. The iframe stays at opacity 1 and its default pixel height, and is uncovered 1.5s after mount if appearance never acks.
 
 ### `updateDefaultValues({ iframe, defaultValues })`
 
@@ -713,7 +713,7 @@ Re-export from `@amos.com/amos-js`. Fills omitted Inter `fonts` / `--font-family
 - **Same components for payment vs setup intents**: `AmosCreditCardPaymentMethodForm` and `AmosBankAccountPaymentMethodForm` support both payment intents and setup intents. The flow differs only by which server call you make and which confirmation function you use (`confirmPayment` vs `confirmSetup`).
 - **Amount format**: for `AmosGooglePayButton` and `AmosApplePayButton`, `amount` is a major-currency decimal string (e.g. `"50.00"` for $50.00). For `components["schemas"]["CreatePaymentIntentInput"]` on the server (card/bank create, and the object the wallet iframe sends to `onConfirm`), `amount` is a number in cents (e.g. `5000`).
 - **Embed host / CSP**: iframes load from `https://js.amos.com` (production) and `https://js-sandbox.amos.com` (sandbox) via `getEmbedOrigin`. Parent pages that pin CSP must allow `frame-src https://js.amos.com https://js-sandbox.amos.com` (and `Permissions-Policy payment=` for those origins) **before** upgrading this package. Older SDK versions still load `embed.amos.com` / `embed-sandbox.amos.com`.
-- **Iframe handshake**: iframe URLs include canonical search params so the embed does not 307. If the document loads but never posts `IFRAME_READY`, the SDK rewrites `src` once with `amosReload`. Appearance is applied after handshake. The iframe stays `opacity: 0` at its default pixel height until `UPDATED_APPEARANCE`, or for 1.5s after mount if appearance never acks. Embed messages match on origin plus `iframeName` when `contentWindow` identity changes.
+- **Iframe handshake**: iframe URLs include canonical search params so the embed does not 307. If the document loads but never posts `IFRAME_READY`, the SDK rewrites `src` once with `amosReload`. Appearance is applied after handshake. The iframe stays at opacity 1 under an opaque skeleton until `UPDATED_APPEARANCE`, or for 1.5s after mount if appearance never acks. Embed messages match on origin plus `iframeName` when `contentWindow` identity changes.
 - **Plaid Embedded Link (ACH verification)**: load `cdn.plaid.com` from the **parent** document (see CSP on `AmosBankAccountPaymentMethodForm`). Merchants do not proxy Pay API; the bank iframe mints link tokens. Pass `requireAchVerification` when the host wants Plaid, or `intent="setup"` to always show it, unless the render token disables verification. Toggling that prop hides or shows the existing Embedded handler — it does not reload Institution Search. Confirm still goes through the bank iframe so Amos can attach `plaid` to the payment method. While Link loads, the SDK shows a 350px pulse skeleton until `onLoad` (1.5s fallback) — do not overlay a host loader. After success the same slot is a connected-account row (institution name, mask, outline Disconnect) styled with existing `themeVariables`. Disconnect shows Institution Search again.
 - **Apple Pay waiting overlay**: on browsers where Apple's QR handoff opens in a popup (non-Safari), `AmosApplePayButton` shows a fixed full-viewport overlay on the host page. **Cancel payment** is available until the buyer authorizes; after that the overlay shows **Completing your payment…** with no Cancel, then hides when `onConfirm` settles. Avoid stacking other fixed UI above it.
 - **Going framework-free**: if you need to use Amos outside of React (vanilla JS, another framework, etc.), use [`@amos.com/amos-js`](../amos-js) directly.

@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.26
+
+### Patch Changes
+
+- Follow `@amos.com/amos-js` 0.11.28: keep the payment iframe at opacity 1 under an opaque skeleton, and reveal it 1.5s after mount if appearance never acks.
+
 ## 0.11.25
 
 ### Patch Changes
