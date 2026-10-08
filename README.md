@@ -692,7 +692,7 @@ Re-exports of the same advanced helpers exposed by `@amos.com/amos-js`. Most int
 
 Re-exports from `@amos.com/amos-js`. Build the iframe `src` URL for each form type. The React components call these for you.
 
-Each URL includes the embed's canonical search params (`token`, `additionalFields`, `billingAddressRequirement`, `intent`) so the embed router does not 307 to fill in defaults. After the iframe `load` event, if `IFRAME_READY` never arrives (stale HTML, missing JS chunk), the SDK rewrites `src` once with `amosReload` so the next document is a real navigation. Appearance is applied after handshake via `UPDATE_APPEARANCE`. A host-page skeleton with an opaque background covers the iframe until then. The iframe stays at opacity 1 and its default pixel height, and is uncovered 1.5s after mount if appearance never acks.
+Each URL includes the embed's canonical search params (`token`, `additionalFields`, `billingAddressRequirement`, `intent`) so the embed router does not 307 to fill in defaults. When the host page URL contains `amosDebug=1`, that flag is copied onto the iframe URL as well. After the iframe `load` event, if `IFRAME_READY` never arrives (stale HTML, missing JS chunk), the SDK rewrites `src` once with `amosReload` so the next document is a real navigation. Appearance is applied after handshake via `UPDATE_APPEARANCE`. A host-page skeleton with an opaque background covers the iframe until then. The iframe stays at opacity 1 and its default pixel height, and is uncovered 1.5s after mount if appearance never acks.
 
 ### `updateDefaultValues({ iframe, defaultValues })`
 

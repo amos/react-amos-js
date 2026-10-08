@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.27
+
+### Patch Changes
+
+- Follow `@amos.com/amos-js` 0.11.29: copy `amosDebug=1` from the host page onto the payment iframe URL.
+
 ## 0.11.26
 
 ### Patch Changes
