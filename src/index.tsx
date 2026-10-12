@@ -161,7 +161,7 @@ function setForwardedRef(
 
 type IframePassthroughProps = Omit<
   ComponentProps<"iframe">,
-  "src" | "title" | "name" | "role" | "allow"
+  "src" | "title" | "name" | "role" | "allow" | "sandbox" | "width" | "height"
 >;
 
 function applyIframePassthrough(
@@ -174,7 +174,14 @@ function applyIframePassthrough(
   if (id != null) {
     iframe.id = id;
   }
-  Object.assign(iframe.style, style);
+  if (style) {
+    const chrome = { ...style };
+    // amos-js owns the pixel box. A percentage width here makes WebKit
+    // treat the frame as indefinite and can pause its layout.
+    delete chrome.width;
+    delete chrome.height;
+    Object.assign(iframe.style, chrome);
+  }
   for (const [key, value] of Object.entries(rest)) {
     if (value == null) {
       continue;

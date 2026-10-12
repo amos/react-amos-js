@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.28
+
+### Patch Changes
+
+- Follow `@amos.com/amos-js` 0.11.30: sandbox payment iframes, and keep an explicit pixel width and height so WebKit lays them out. Host `sandbox`, `width`, and `height` props are ignored.
+
 ## 0.11.27
 
 ### Patch Changes
