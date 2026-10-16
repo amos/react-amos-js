@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.29
+
+### Patch Changes
+
+- Follow `@amos.com/amos-js` 0.11.31: keep the host skeleton up until the postMessage handshake starts, then reveal it when appearance acks or 1.5s after `IFRAME_READY`.
+
 ## 0.11.28
 
 ### Patch Changes
