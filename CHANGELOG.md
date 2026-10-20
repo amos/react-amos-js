@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.11.30
+
+### Patch Changes
+
+- Follow `@amos.com/amos-js` 0.11.33: `defaultValues` uses `accountHolderName` and `cardholderName` instead of `name`. Billing address also includes `name`, `email`, and `phone`.
+
 ## 0.11.29
 
 ### Patch Changes

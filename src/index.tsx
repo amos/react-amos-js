@@ -345,8 +345,11 @@ type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
   billingAddressRequirement?: BillingAddressRequirement;
   /**
    * Seed cardholder name and billing address. Provided keys overwrite
-   * matching fields, including ones the customer already edited. Values
-   * are sent on confirm even when those inputs are hidden.
+   * matching fields, including ones the customer already edited.
+   * `cardholderName` prefills the cardholder input and is confirmed only
+   * when `additionalFields.cardholderName` is true. Billing fields,
+   * including `billingAddress.name`, `email`, and `phone`, are sent on
+   * confirm even when those inputs are hidden.
    */
   defaultValues?: PaymentMethodFormDefaultValues;
 };
@@ -430,7 +433,9 @@ type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
   /**
    * Seed account holder name and billing address. Provided keys
    * overwrite matching fields, including ones the customer already
-   * edited.
+   * edited. `accountHolderName` prefills the account-holder input.
+   * Billing fields, including `billingAddress.name`, `email`, and
+   * `phone`, are sent on confirm even when those inputs are hidden.
    */
   defaultValues?: PaymentMethodFormDefaultValues;
   /**
