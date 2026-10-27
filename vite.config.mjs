@@ -1,5 +1,6 @@
-import { defineConfig } from "vite";
+import { playwright } from "@vitest/browser-playwright";
 import dts from "vite-plugin-dts";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [
@@ -40,6 +41,15 @@ export default defineConfig({
         },
         keepNames: true,
       },
+    },
+  },
+  test: {
+    include: ["src/**/*.test.tsx"],
+    browser: {
+      enabled: true,
+      headless: true,
+      provider: playwright(),
+      instances: [{ browser: "chromium" }],
     },
   },
 });
