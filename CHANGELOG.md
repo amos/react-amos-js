@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.12.0
+
+### Minor Changes
+
+- def5375: Follow `@amos.com/amos-js` 0.12.0: adds `openPlaidPopupLink` (a regular Plaid Link session for update-mode tokens, e.g. micro-deposit code re-entry, which Embedded Institution Search cannot open) plus the `ExternalBankAccount*` message/result types. Both are re-exported from `@amos.com/react-amos-js`; component props and behaviour are unchanged.
+
 ## 0.11.30
 
 ### Patch Changes
