@@ -12,15 +12,20 @@ import {
   type ConfirmPaymentResult,
   type ConfirmSetupResult,
   type CreditCardAdditionalFields,
+  confirmExternalBankAccountIntent,
+  type ExternalBankAccountConfirmResult,
+  type ExternalBankAccountStateEvent,
   ensureSkeletonStyles,
   type GooglePayButtonElementProps,
   mountAmosApplePayButton,
   mountAmosBankAccountPaymentMethodForm,
   mountAmosCreditCardPaymentMethodForm,
+  mountAmosExternalBankAccountForm,
   mountAmosGooglePayButton,
   type PaymentMethodFormDefaultValues,
   type PaymentMethodFormField,
   type PaymentMethodFormPostalCodeChangeEvent,
+  refreshExternalBankAccountIntent,
   resolveWalletButtonSkeletonBorderRadius,
   type WalletCustomerCreateAttributes,
 } from "@amos.com/amos-js";
@@ -509,6 +514,118 @@ export function AmosBankAccountPaymentMethodForm({
   });
 
   return <div ref={containerRef} />;
+}
+
+type AmosExternalBankAccountFormProps = IframePassthroughProps & {
+  /** Render token that allows bank accounts. Safe to pass to the client. */
+  renderToken: string;
+  /**
+   * The external bank account intent to link. Create it on your server
+   * with `POST /external_bank_account_intents`. Changing it remounts.
+   */
+  intentId: string;
+  appearance?: Appearance;
+  /**
+   * Called with each screen the form shows: `connect`, `code`,
+   * `verifying`, `finish`, `deposits_sent`, `done`, `failed`, `closed`,
+   * or `unavailable`. Use it to hide your submit button once the account
+   * is `done`, or to poll with {@link refreshExternalBankAccount} while
+   * it is `verifying`.
+   */
+  onStateChange?: (event: ExternalBankAccountStateEvent) => void;
+  /**
+   * Called when the form becomes ready to submit, or stops being ready.
+   * `isValid` is true once the account holder is filled in and the bank
+   * step is done: a bank picked in Plaid, or the micro-deposit code
+   * entered.
+   */
+  onValidityChange?: (event: { isValid: boolean }) => void;
+  /** Called when the customer presses Escape in the iframe. */
+  onEscapeKeyPressed?: () => void;
+};
+
+/**
+ * Link a bank account to pay out to. The form shows the intent's status
+ * and collects the account holder; Plaid Link opens on your page below
+ * it for a first link, or as an overlay to enter a micro-deposit code.
+ * Submit with {@link confirmExternalBankAccount}.
+ */
+export function AmosExternalBankAccountForm({
+  ref,
+  renderToken,
+  intentId,
+  appearance,
+  onStateChange,
+  onValidityChange,
+  onEscapeKeyPressed,
+  style,
+  ...rest
+}: AmosExternalBankAccountFormProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useAmosEmbed({
+    containerRef,
+    iframeRef: ref as ForwardedIframeRef,
+    mount: mountAmosExternalBankAccountForm,
+    options: {
+      renderToken,
+      intentId,
+      appearance,
+      onStateChange,
+      onValidityChange,
+      onEscapeKeyPressed,
+    },
+    remountDeps: [renderToken, intentId],
+    iframePassthrough: { style, ...rest },
+    updateDeps: [
+      appearance,
+      onStateChange,
+      onValidityChange,
+      onEscapeKeyPressed,
+    ],
+  });
+
+  return <div ref={containerRef} />;
+}
+
+/**
+ * Submit {@link AmosExternalBankAccountForm}. `token` is the intent's
+ * embed token: mint it on your server with
+ * `POST /external_bank_account_intents/:id/embed_token` right before
+ * calling this, because it expires within seconds.
+ *
+ * Resolves with `succeeded`, `requires_verification` (micro-deposits
+ * were sent), or `failed` with a `reason`, and does not throw. A
+ * `retryable` failure can be submitted again with a fresh token; after
+ * a `timeout` the SDK replays the same request, so a bank is never
+ * linked twice.
+ */
+export function confirmExternalBankAccount({
+  iframeRef,
+  token,
+  metadata,
+}: {
+  iframeRef: IframeRef;
+  token: string;
+  metadata?: Record<string, string>;
+}): Promise<ExternalBankAccountConfirmResult> {
+  return confirmExternalBankAccountIntent({
+    iframe: resolveIframe(iframeRef),
+    token,
+    metadata,
+  });
+}
+
+/**
+ * Read the intent behind {@link AmosExternalBankAccountForm} again and
+ * show its current screen, e.g. on an interval while it is `verifying`.
+ */
+export function refreshExternalBankAccount({
+  iframeRef,
+}: {
+  iframeRef: IframeRef;
+}): void {
+  refreshExternalBankAccountIntent({ iframe: resolveIframe(iframeRef) });
 }
 
 type AmosGooglePayButtonProps = {

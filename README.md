@@ -501,6 +501,67 @@ function SavePaymentMethodForm() {
 }
 ```
 
+### Linking a bank account to pay out to (external bank account intent)
+
+Create the intent on your server (`POST /external_bank_account_intents`) and pass its id. The form shows the intent's status and the account holder fields. Plaid Link opens on your page: Embedded Institution Search below the form for a first link, or Link's overlay to enter micro-deposit codes. Returning customers get the same component with the same intent id; it shows whatever step the intent is on.
+
+```tsx
+import { useRef, useState } from "react";
+import {
+  AmosExternalBankAccountForm,
+  confirmExternalBankAccount,
+  type ExternalBankAccountScreen,
+} from "@amos.com/react-amos-js";
+
+function PayoutBankAccountForm({ intentId }: { intentId: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [screen, setScreen] = useState<ExternalBankAccountScreen>();
+  const [isValid, setIsValid] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canSubmit =
+    screen === "connect" || screen === "code" || screen === "finish";
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsProcessing(true);
+    setError(null);
+    try {
+      // Your server calls POST /external_bank_account_intents/:id/embed_token.
+      const response = await fetch(`/api/payout-accounts/${intentId}/token`, {
+        method: "POST",
+      });
+      const { token } = await response.json();
+      const result = await confirmExternalBankAccount({ iframeRef, token });
+      if (result.status === "failed") {
+        setError(result.retryable ? "Please try again." : "Could not link this bank.");
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <AmosExternalBankAccountForm
+        ref={iframeRef}
+        renderToken="the-render-token-that-you-created-on-dashboard.amos.com"
+        intentId={intentId}
+        onStateChange={(event) => setScreen(event.screen)}
+        onValidityChange={(event) => setIsValid(event.isValid)}
+      />
+      {error ? <p>{error}</p> : null}
+      {canSubmit ? (
+        <button type="submit" disabled={!isValid || isProcessing}>
+          {isProcessing ? "Connecting..." : "Connect bank account"}
+        </button>
+      ) : null}
+    </form>
+  );
+}
+```
+
 ## API reference
 
 ### `validateForm({ iframeRef })`
@@ -590,7 +651,7 @@ Renders the secure bank account iframe form. A field-shaped skeleton with an opa
 
 When `requireAchVerification` is true (or `intent` is `"setup"`), and the render token allows verification, the SDK hides the routing/account iframe and mounts [Plaid Embedded Institution Search](https://plaid.com/docs/link/embedded-institution-search/) in the parent. A **350px pulse skeleton** covers that slot until Plaid's `onLoad` (1.5s fallback). Do not overlay a host loader. Hosts do not proxy Pay API (`POST /plaid_link_tokens`); embed does that with `PAY_API_KEY`. Do not put Plaid secrets in the browser.
 
-**Two kinds of Plaid session.** `requireAchVerification` and `intent="setup"` only ever mount **Embedded Institution Search**. Re-entering a connection the customer already added — typing micro-deposit codes — is a **regular** Link session, and Plaid forbids Embedded Institution Search in update mode entirely, which is why the SDK exposes it as a separate call (`openPlaidPopupLink`) instead of another prop. Nothing in the React layer listens for `EXTERNAL_BANK_ACCOUNT_LINK_TOKEN` (it carries `linkToken` plus `mode: "new" | "update"`), so a host that drives an external-bank-account intent handles that message itself, opens Link, then posts `CONFIRM_EXTERNAL_BANK_ACCOUNT_INTENT` back to the iframe. There is no React component for that flow yet.
+**Two kinds of Plaid session.** `requireAchVerification` and `intent="setup"` only ever mount **Embedded Institution Search**. Re-entering a connection the customer already added — typing micro-deposit codes — is a **regular** Link session, and Plaid forbids Embedded Institution Search in update mode entirely, which is why the SDK exposes it as a separate call (`openPlaidPopupLink`) instead of another prop. To link a bank account to pay out to (an external bank account intent), use [`AmosExternalBankAccountForm`](#amosexternalbankaccountform), which runs both kinds of session for you.
 
 After Link succeeds, Institution Search is replaced by a connected-account row: institution name, masked account (`****` plus last4, or "Connected"), and an outline Disconnect button. Disconnect clears the linked account and shows Institution Search again. The row uses existing `appearance.themeVariables` (`--border`, `--background`, `--foreground`, `--muted` falling back to `--accent`, `--muted-foreground`, `--accent`, `--accent-foreground`, `--radius`, `--ring`). In dark mode the Disconnect border uses `--input`. No new theme variable or appearance rule is required.
 
@@ -622,6 +683,38 @@ Setup (always Plaid, unless the render token disables verification):
 **CSP:** the parent page must allow Plaid’s script and frames, for example `script-src https://cdn.plaid.com` and `frame-src https://cdn.plaid.com https://*.plaid.com`. Amos never loads `PLAID_SECRET` / `PLAID_CLIENT_ID` in the SDK or embed iframe.
 
 **Also accepts:** the same iframe props as the card form. `sandbox`, `width`, and `height` stay under SDK control.
+
+### `AmosExternalBankAccountForm`
+
+Links a bank account to pay out to through an external bank account intent. The iframe reads the intent, shows its status, and collects the account holder name and type, which the API needs on every confirm. Plaid Link runs in your page, below the iframe: Embedded Institution Search when the intent needs a first link (`connect`), or a button that opens Link's overlay to enter micro-deposit codes (`code`). After a bank is picked, Institution Search is replaced by the same connected-account row and Disconnect button as `AmosBankAccountPaymentMethodForm`. The iframe mints Plaid link tokens itself; your page never sees an Amos API key or Plaid secret.
+
+**Required props:**
+
+- `renderToken` (`string`) — must allow bank accounts.
+- `intentId` (`string`) — the external bank account intent. Changing it remounts the form.
+
+**Optional props:**
+
+- `appearance` — same as the card form (see [Appearance](#appearance)). Also themes the Plaid panel.
+- `onStateChange` (`(event: { screen, institutionName, mask, error? }) => void`) — called with each screen the form shows. `screen` is `connect` (first link), `code` (enter micro-deposit codes), `finish` (verified; confirm to finish), `verifying` (the bank is still checking; poll with `refreshExternalBankAccount`), `deposits_sent`, `done`, `failed`, `closed`, or `unavailable`. Only `connect`, `code`, and `finish` accept a confirm, so hide your submit button on the others.
+- `onValidityChange` (`(event: { isValid: boolean }) => void`) — `isValid` is true once the account holder is filled in and the bank step is done: a bank picked in Plaid on `connect`, the overlay finished on `code`, or nothing more on `finish`.
+- `onEscapeKeyPressed` (`() => void`)
+
+**Also accepts:** the same iframe props as the card form. Same Plaid CSP as `AmosBankAccountPaymentMethodForm`.
+
+### `confirmExternalBankAccount({ iframeRef, token, metadata? })`
+
+Submits `AmosExternalBankAccountForm`. `token` is the intent's embed token: mint it on your server with `POST /external_bank_account_intents/:id/embed_token` right before calling this, because it expires within seconds. Never throws.
+
+**Returns:** `Promise<ExternalBankAccountConfirmResult>`:
+
+- `{ status: "succeeded", externalAccountId?, mask? }` — linked. Still confirm on your server before paying out.
+- `{ status: "requires_verification", verificationStatus? }` — micro-deposits were sent; the customer comes back with the same intent to enter the codes.
+- `{ status: "failed", reason, retryable, error? }` — `reason` is `timeout`, `holder_required`, `unauthorized` (the embed token expired), `forbidden`, `rejected`, or `unknown`. When `retryable`, mint a new token and call again. After a `timeout` the SDK replays the same request (same idempotency key), so a retry never links twice. A `rejected` first link has already been reset: the form shows Institution Search again.
+
+### `refreshExternalBankAccount({ iframeRef })`
+
+Reads the intent again and shows its current screen, e.g. on an interval while `onStateChange` reports `verifying`. Returns `void`; the new screen arrives through `onStateChange`.
 
 ### `AmosGooglePayButton`
 
@@ -706,7 +799,7 @@ Re-export from `@amos.com/amos-js`. Fills omitted Inter `fonts` / `--font-family
 
 ### `openPlaidPopupLink({ token, onSuccess, onExit?, signal? })`
 
-Re-export from `@amos.com/amos-js`. Opens a **regular** Plaid Link session — the only kind Plaid allows for **update** tokens (micro-deposit re-entry), which Embedded Institution Search cannot open. It loads `https://cdn.plaid.com/link/v2/stable/link-initialize.js` first, then renders Link as an **overlay in your document**, not a browser popup, so awaiting a token before opening does not cost you the user gesture. Despite the name, nothing here is React-specific and `AmosBankAccountPaymentMethodForm` never calls it; use it when you drive the ACH step yourself.
+Re-export from `@amos.com/amos-js`. Opens a **regular** Plaid Link session — the only kind Plaid allows for **update** tokens (micro-deposit re-entry), which Embedded Institution Search cannot open. It loads `https://cdn.plaid.com/link/v2/stable/link-initialize.js` first, then renders Link as an **overlay in your document**, not a browser popup, so awaiting a token before opening does not cost you the user gesture. Despite the name, nothing here is React-specific. `AmosExternalBankAccountForm` already calls it for micro-deposit codes; use it only when you drive the iframe messages yourself.
 
 **Parameters:**
 
@@ -759,7 +852,7 @@ useEffect(() => {
 
 ### Exported types
 
-`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `ConfirmPaymentResult`, `ConfirmSetupResult`, `isConfirmTimeout`, `CONFIRM_TIMEOUT_MS`, `PAYMENT_IFRAME_SANDBOX`, `WALLET_IFRAME_SANDBOX`, `PaymentMethodFormValidityChangeEvent`, `CardBrand`, `PaymentMethodFormCardBrandChangeEvent`, `PaymentMethodFormPostalCodeChangeEvent`, `FormattedGooglePayPaymentData`, `WalletCustomerCreateAttributes`, `WalletPostalAddress`, `WalletContactRequirements`, `Message`, `Appearance`, `ThemeVariable`, `FontSource`, `CssFontSource`, `CustomFontSource`, `AppearanceRuleSelector`, `AppearanceRuleDeclarations`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, `ExternalBankAccountConfirmResult`, `ExternalBankAccountFailureReason`, `ExternalBankAccountLinkMode`, `ExternalBankAccountScreen`, `ExternalBankAccountState`, `ExternalBankAccountVerificationStatus`, `OpenPlaidPopupLinkInput`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`. Copy `PAYMENT_IFRAME_SANDBOX` or `WALLET_IFRAME_SANDBOX` onto a hand-built iframe before setting `src`.
+`@amos.com/react-amos-js` re-exports everything from `@amos.com/amos-js`, including `ConfirmPaymentResult`, `ConfirmSetupResult`, `isConfirmTimeout`, `CONFIRM_TIMEOUT_MS`, `PAYMENT_IFRAME_SANDBOX`, `WALLET_IFRAME_SANDBOX`, `PaymentMethodFormValidityChangeEvent`, `CardBrand`, `PaymentMethodFormCardBrandChangeEvent`, `PaymentMethodFormPostalCodeChangeEvent`, `FormattedGooglePayPaymentData`, `WalletCustomerCreateAttributes`, `WalletPostalAddress`, `WalletContactRequirements`, `Message`, `Appearance`, `ThemeVariable`, `FontSource`, `CssFontSource`, `CustomFontSource`, `AppearanceRuleSelector`, `AppearanceRuleDeclarations`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, `ExternalBankAccountConfirmResult`, `ExternalBankAccountFailureReason`, `ExternalBankAccountLinkMode`, `ExternalBankAccountScreen`, `ExternalBankAccountState`, `ExternalBankAccountVerificationStatus`, `OpenPlaidPopupLinkInput`, `ExternalBankAccountStateEvent`, and the per-form `*Options` / `*Controller` types. For OpenAPI schema types (e.g. `PaymentIntent`, `CreatePaymentIntentInput`), import `components` from `@amos.com/node`. Copy `PAYMENT_IFRAME_SANDBOX` or `WALLET_IFRAME_SANDBOX` onto a hand-built iframe before setting `src`.
 
 ## Notes and potential gotchas
 
@@ -771,7 +864,7 @@ useEffect(() => {
 - **Iframe handshake**: iframe URLs include canonical search params so the embed does not 307. When the host page URL contains `amosDebug=1`, that flag is copied onto the iframe URL. If the document loads but never posts `IFRAME_READY`, the SDK rewrites `src` once with `amosReload`. Appearance is applied after handshake. The iframe stays at opacity 1 under an opaque skeleton, with an explicit pixel width and height, until `UPDATED_APPEARANCE`, or for 1.5s after the postMessage handshake starts (`IFRAME_READY`) if appearance never acks. Embed messages match on origin plus `iframeName` when `contentWindow` identity changes.
 - **Iframe sandbox**: mount helpers set `sandbox` before `src`. Card and bank frames use `PAYMENT_IFRAME_SANDBOX` (`allow-forms allow-same-origin allow-scripts`). Wallet frames use `WALLET_IFRAME_SANDBOX`, which also allows the payment-sheet popup (`allow-popups allow-popups-to-escape-sandbox`), and set `allow="payment"`. Hand-built iframes should copy the same attribute. Top-level navigation stays blocked. Host `sandbox`, `width`, and `height` props are ignored.
 - **Plaid Embedded Link (ACH verification)**: load `cdn.plaid.com` from the **parent** document (see CSP on `AmosBankAccountPaymentMethodForm`). Merchants do not proxy Pay API; the bank iframe mints link tokens. Pass `requireAchVerification` when the host wants Plaid, or `intent="setup"` to always show it, unless the render token disables verification. Toggling that prop hides or shows the existing Embedded handler — it does not reload Institution Search. Confirm still goes through the bank iframe so Amos can attach `plaid` to the payment method. While Link loads, the SDK shows a 350px pulse skeleton until `onLoad` (1.5s fallback) — do not overlay a host loader. After success the same slot is a connected-account row (institution name, mask, outline Disconnect) styled with existing `themeVariables`. Disconnect shows Institution Search again.
-- **Update-mode Plaid Link**: the bank component only mounts Embedded Institution Search. Micro-deposit re-entry needs a regular Link session — call `openPlaidPopupLink()` yourself and always run its teardown, or the overlay and its `message` listeners stay behind and stack on the next attempt. Same CSP as the bank form (`script-src`/`frame-src` for `cdn.plaid.com` and `*.plaid.com`); the overlay is a `cdn.plaid.com` iframe in your document, not a window you can close.
+- **Update-mode Plaid Link**: the bank component only mounts Embedded Institution Search. Micro-deposit re-entry needs a regular Link session; `AmosExternalBankAccountForm` opens one for you. If you build that flow by hand, call `openPlaidPopupLink()` yourself and always run its teardown, or the overlay and its `message` listeners stay behind and stack on the next attempt. Same CSP as the bank form (`script-src`/`frame-src` for `cdn.plaid.com` and `*.plaid.com`); the overlay is a `cdn.plaid.com` iframe in your document, not a window you can close.
 - **Apple Pay waiting overlay**: on browsers where Apple's QR handoff opens in a popup (non-Safari), `AmosApplePayButton` shows a fixed full-viewport overlay on the host page. **Cancel payment** is available until the buyer authorizes; after that the overlay shows **Completing your payment…** with no Cancel, then hides when `onConfirm` settles. Avoid stacking other fixed UI above it.
 - **Going framework-free**: if you need to use Amos outside of React (vanilla JS, another framework, etc.), use [`@amos.com/amos-js`](../amos-js) directly.
 
