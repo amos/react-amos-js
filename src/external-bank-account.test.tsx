@@ -72,6 +72,8 @@ function render(ui: React.ReactNode): void {
   act(() => root.render(ui));
 }
 
+const getEmbedToken = async () => "embed.jwt";
+
 describe("AmosExternalBankAccountForm", () => {
   test("mounts the form with the intent and forwards the iframe", () => {
     const ref = createRef<HTMLIFrameElement>();
@@ -81,6 +83,7 @@ describe("AmosExternalBankAccountForm", () => {
       <AmosExternalBankAccountForm
         ref={ref}
         renderToken="rt_1"
+        getEmbedToken={getEmbedToken}
         intentId="ebai_1"
         onStateChange={onStateChange}
         onValidityChange={onValidityChange}
@@ -96,6 +99,7 @@ describe("AmosExternalBankAccountForm", () => {
     expect(options).toMatchObject({
       renderToken: "rt_1",
       intentId: "ebai_1",
+      getEmbedToken,
       onStateChange,
       onValidityChange,
     });
@@ -110,7 +114,11 @@ describe("AmosExternalBankAccountForm", () => {
 
   test("updates callbacks in place and remounts for a new intent", () => {
     render(
-      <AmosExternalBankAccountForm renderToken="rt_1" intentId="ebai_1" />,
+      <AmosExternalBankAccountForm
+        renderToken="rt_1"
+        getEmbedToken={getEmbedToken}
+        intentId="ebai_1"
+      />,
     );
     const first = amos.controllers[0];
 
@@ -118,6 +126,7 @@ describe("AmosExternalBankAccountForm", () => {
     render(
       <AmosExternalBankAccountForm
         renderToken="rt_1"
+        getEmbedToken={getEmbedToken}
         intentId="ebai_1"
         onStateChange={onStateChange}
       />,
@@ -130,6 +139,7 @@ describe("AmosExternalBankAccountForm", () => {
     render(
       <AmosExternalBankAccountForm
         renderToken="rt_1"
+        getEmbedToken={getEmbedToken}
         intentId="ebai_2"
         onStateChange={onStateChange}
       />,
@@ -147,6 +157,7 @@ describe("AmosExternalBankAccountForm", () => {
       <AmosExternalBankAccountForm
         ref={ref}
         renderToken="rt_1"
+        getEmbedToken={getEmbedToken}
         intentId="ebai_1"
       />,
     );
@@ -163,6 +174,7 @@ describe("confirmExternalBankAccount", () => {
       <AmosExternalBankAccountForm
         ref={ref}
         renderToken="rt_1"
+        getEmbedToken={getEmbedToken}
         intentId="ebai_1"
       />,
     );
@@ -198,6 +210,7 @@ describe("refreshExternalBankAccount", () => {
       <AmosExternalBankAccountForm
         ref={ref}
         renderToken="rt_1"
+        getEmbedToken={getEmbedToken}
         intentId="ebai_1"
       />,
     );
