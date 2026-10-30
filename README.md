@@ -696,7 +696,7 @@ Links a bank account to pay out to through an external bank account intent. The 
 
 **Required props:**
 
-- `renderToken` (`string`) — must allow bank accounts.
+- `renderToken` (`string`) — a valid render token. It doesn't need to allow any particular payment method.
 - `intentId` (`string`) — the external bank account intent. Changing it remounts the form.
 - `getEmbedToken` (`(intentId: string) => Promise<string>`) — returns an embed token your server mints with `POST /external_bank_account_intents/:id/embed_token`. Embed tokens expire within seconds, so the form calls it before each call it makes for the intent: reading it, and minting the Plaid Link token. Keep it stable across renders (`useCallback`).
 

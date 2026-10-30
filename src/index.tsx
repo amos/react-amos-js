@@ -517,7 +517,10 @@ export function AmosBankAccountPaymentMethodForm({
 }
 
 type AmosExternalBankAccountFormProps = IframePassthroughProps & {
-  /** Render token that allows bank accounts. Safe to pass to the client. */
+  /**
+   * Any valid render token; it doesn't need to allow a particular payment
+   * method. Safe to pass to the client.
+   */
   renderToken: string;
   /**
    * The external bank account intent to link. Create it on your server
