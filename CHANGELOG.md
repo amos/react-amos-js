@@ -1,5 +1,13 @@
 # @amos.com/react-amos-js
 
+## 0.13.0
+
+### Minor Changes
+
+- 1b4ffe1: `AmosExternalBankAccountForm` requires `getEmbedToken(intentId)`, which mints
+  the embed token the iframe reads the intent and mints its Plaid Link token
+  with. Changing it updates the form in place instead of remounting it.
+
 ## 0.12.1
 
 ### Patch Changes
