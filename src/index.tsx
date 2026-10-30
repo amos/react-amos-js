@@ -524,6 +524,13 @@ type AmosExternalBankAccountFormProps = IframePassthroughProps & {
    * with `POST /external_bank_account_intents`. Changing it remounts.
    */
   intentId: string;
+  /**
+   * Mint an embed token for the intent with your server's
+   * `POST /external_bank_account_intents/:id/embed_token`. Called before
+   * each call the iframe makes, because the token expires within seconds.
+   * Keep it stable across renders.
+   */
+  getEmbedToken: (intentId: string) => Promise<string>;
   appearance?: Appearance;
   /**
    * Called with each screen the form shows: `connect`, `code`,
@@ -555,6 +562,7 @@ export function AmosExternalBankAccountForm({
   renderToken,
   intentId,
   appearance,
+  getEmbedToken,
   onStateChange,
   onValidityChange,
   onEscapeKeyPressed,
@@ -571,6 +579,7 @@ export function AmosExternalBankAccountForm({
       renderToken,
       intentId,
       appearance,
+      getEmbedToken,
       onStateChange,
       onValidityChange,
       onEscapeKeyPressed,
@@ -579,6 +588,7 @@ export function AmosExternalBankAccountForm({
     iframePassthrough: { style, ...rest },
     updateDeps: [
       appearance,
+      getEmbedToken,
       onStateChange,
       onValidityChange,
       onEscapeKeyPressed,

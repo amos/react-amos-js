@@ -513,6 +513,15 @@ import {
   type ExternalBankAccountScreen,
 } from "@amos.com/react-amos-js";
 
+// Your server calls POST /external_bank_account_intents/:id/embed_token.
+async function mintEmbedToken(intentId: string): Promise<string> {
+  const response = await fetch(`/api/payout-accounts/${intentId}/token`, {
+    method: "POST",
+  });
+  const { token } = await response.json();
+  return token;
+}
+
 function PayoutBankAccountForm({ intentId }: { intentId: string }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [screen, setScreen] = useState<ExternalBankAccountScreen>();
@@ -528,11 +537,7 @@ function PayoutBankAccountForm({ intentId }: { intentId: string }) {
     setIsProcessing(true);
     setError(null);
     try {
-      // Your server calls POST /external_bank_account_intents/:id/embed_token.
-      const response = await fetch(`/api/payout-accounts/${intentId}/token`, {
-        method: "POST",
-      });
-      const { token } = await response.json();
+      const token = await mintEmbedToken(intentId);
       const result = await confirmExternalBankAccount({ iframeRef, token });
       if (result.status === "failed") {
         setError(result.retryable ? "Please try again." : "Could not link this bank.");
@@ -548,6 +553,7 @@ function PayoutBankAccountForm({ intentId }: { intentId: string }) {
         ref={iframeRef}
         renderToken="the-render-token-that-you-created-on-dashboard.amos.com"
         intentId={intentId}
+        getEmbedToken={mintEmbedToken}
         onStateChange={(event) => setScreen(event.screen)}
         onValidityChange={(event) => setIsValid(event.isValid)}
       />
@@ -692,6 +698,7 @@ Links a bank account to pay out to through an external bank account intent. The 
 
 - `renderToken` (`string`) — must allow bank accounts.
 - `intentId` (`string`) — the external bank account intent. Changing it remounts the form.
+- `getEmbedToken` (`(intentId: string) => Promise<string>`) — returns an embed token your server mints with `POST /external_bank_account_intents/:id/embed_token`. Embed tokens expire within seconds, so the form calls it before each call it makes for the intent: reading it, and minting the Plaid Link token. Keep it stable across renders (`useCallback`).
 
 **Optional props:**
 
