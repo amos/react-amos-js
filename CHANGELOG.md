@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.13.1
+
+### Patch Changes
+
+- Add `<AmosOnboarding>` and `refreshOnboarding`, wrapping amos-js `mountAmosOnboarding`: the whole legal entity application in one component.
+
 ## 0.13.0
 
 ### Minor Changes
