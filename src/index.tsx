@@ -22,10 +22,16 @@ import {
   mountAmosCreditCardPaymentMethodForm,
   mountAmosExternalBankAccountForm,
   mountAmosGooglePayButton,
+  mountAmosOnboarding,
+  type OnboardingCreateApplicationInput,
+  type OnboardingCreateApplicationResult,
+  type OnboardingStateEvent,
+  type OnboardingSubmittedEvent,
   type PaymentMethodFormDefaultValues,
   type PaymentMethodFormField,
   type PaymentMethodFormPostalCodeChangeEvent,
   refreshExternalBankAccountIntent,
+  refreshOnboarding as refreshOnboardingIframe,
   resolveWalletButtonSkeletonBorderRadius,
   type WalletCustomerCreateAttributes,
 } from "@amos.com/amos-js";
@@ -639,6 +645,112 @@ export function refreshExternalBankAccount({
   iframeRef: IframeRef;
 }): void {
   refreshExternalBankAccountIntent({ iframe: resolveIframe(iframeRef) });
+}
+
+type AmosOnboardingProps = IframePassthroughProps & {
+  /**
+   * Any valid render token. It pins the origins allowed to frame the form
+   * and the environment. Safe to pass to the client.
+   */
+  renderToken: string;
+  /**
+   * The legal entity application to fill in. Omit it (or pass `null`) to
+   * start a new one with `createApplication`. Changing it remounts, so keep
+   * it unchanged when `onApplicationCreated` reports the new id.
+   */
+  applicationId?: string | null;
+  /**
+   * Mint an embed token for the application with your server's
+   * `POST /legal_entity_applications/:id/embed_token`. Called before each
+   * call the iframe makes, because the token expires within seconds.
+   */
+  getEmbedToken: (applicationId: string) => Promise<string>;
+  /**
+   * Create the application with your server's
+   * `POST /legal_entity_applications`, from the first step's fields.
+   * Required when there is no `applicationId`. Resolve with the API's 422
+   * `errors` to show them on the form.
+   */
+  createApplication?: (
+    application: OnboardingCreateApplicationInput,
+  ) => Promise<OnboardingCreateApplicationResult>;
+  /** Called once `createApplication` returns an id. Save it to resume later. */
+  onApplicationCreated?: (event: { applicationId: string }) => void;
+  appearance?: Appearance;
+  /**
+   * Called after every read and save with the application's state, the
+   * screen shown, and the requirements still open. Holds no field values.
+   */
+  onStateChange?: (event: OnboardingStateEvent) => void;
+  /** Called when the applicant submits or resubmits. Verify with the webhook. */
+  onSubmitted?: (event: OnboardingSubmittedEvent) => void;
+};
+
+/**
+ * The whole legal entity application in one iframe: business details,
+ * payments profile, principals, payout account and EIN letter, then
+ * review and submit. When an underwriter asks for more, the same form
+ * shows what is needed and lets the applicant resubmit.
+ *
+ * Every field goes from the iframe straight to Amos, except a new
+ * application's first step, which `createApplication` sends from your
+ * server.
+ */
+export function AmosOnboarding({
+  ref,
+  renderToken,
+  applicationId,
+  getEmbedToken,
+  createApplication,
+  onApplicationCreated,
+  appearance,
+  onStateChange,
+  onSubmitted,
+  style,
+  ...rest
+}: AmosOnboardingProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useAmosEmbed({
+    containerRef,
+    iframeRef: ref as ForwardedIframeRef,
+    mount: mountAmosOnboarding,
+    options: {
+      renderToken,
+      applicationId,
+      getEmbedToken,
+      createApplication,
+      onApplicationCreated,
+      appearance,
+      onStateChange,
+      onSubmitted,
+    },
+    remountDeps: [renderToken, applicationId],
+    iframePassthrough: { style, ...rest },
+    updateDeps: [
+      appearance,
+      getEmbedToken,
+      createApplication,
+      onApplicationCreated,
+      onStateChange,
+      onSubmitted,
+    ],
+  });
+
+  return <div ref={containerRef} />;
+}
+
+/**
+ * Read the application behind {@link AmosOnboarding} again and show where
+ * it stands, e.g. after your server gets a `legal_entity_application.*`
+ * webhook or when the applicant comes back to the tab.
+ */
+export function refreshOnboarding({
+  iframeRef,
+}: {
+  iframeRef: IframeRef;
+}): void {
+  refreshOnboardingIframe({ iframe: resolveIframe(iframeRef) });
 }
 
 type AmosGooglePayButtonProps = {

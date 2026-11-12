@@ -568,6 +568,56 @@ function PayoutBankAccountForm({ intentId }: { intentId: string }) {
 }
 ```
 
+### Onboarding an organization (legal entity application)
+
+`AmosOnboarding` is the whole application in one component. Pass the application id when you have one; without it, the form collects the first step and calls `createApplication`, which your server turns into `POST /legal_entity_applications`. Save the id it returns and pass it next time: the form resumes wherever the application stands, including any request from an underwriter.
+
+```tsx
+import { useCallback, useRef } from "react";
+import {
+  AmosOnboarding,
+  type OnboardingCreateApplicationInput,
+  refreshOnboarding,
+} from "@amos.com/react-amos-js";
+
+function Application({ applicationId }: { applicationId: string | null }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Your server calls POST /legal_entity_applications/:id/embed_token.
+  const getEmbedToken = useCallback(async (id: string) => {
+    const response = await fetch(`/api/applications/${id}/token`, {
+      method: "POST",
+    });
+    return (await response.json()).token as string;
+  }, []);
+
+  // Your server calls POST /legal_entity_applications and saves the id.
+  // Answer { errors } with the API's 422 errors to show them on the form.
+  const createApplication = useCallback(
+    async (application: OnboardingCreateApplicationInput) => {
+      const response = await fetch("/api/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(application),
+      });
+      return response.json();
+    },
+    [],
+  );
+
+  return (
+    <AmosOnboarding
+      ref={iframeRef}
+      renderToken="the-render-token-that-you-created-on-dashboard.amos.com"
+      applicationId={applicationId}
+      getEmbedToken={getEmbedToken}
+      createApplication={createApplication}
+      onSubmitted={() => refreshOnboarding({ iframeRef })}
+    />
+  );
+}
+```
+
 ## API reference
 
 ### `validateForm({ iframeRef })`
@@ -722,6 +772,28 @@ Submits `AmosExternalBankAccountForm`. `token` is the intent's embed token: mint
 ### `refreshExternalBankAccount({ iframeRef })`
 
 Reads the intent again and shows its current screen, e.g. on an interval while `onStateChange` reports `verifying`. Returns `void`; the new screen arrives through `onStateChange`.
+
+### `AmosOnboarding`
+
+The whole legal entity application in one iframe: business details, payments profile, principals, payout account and IRS EIN letter, then review and submit. When an underwriter asks for more, the same form shows the request and lets the applicant resubmit. Every field goes from the iframe to `/embed/legal_entity_applications/{id}/…`, except a new application's first step (see `createApplication`).
+
+**Required props:**
+
+- `renderToken` (`string`) — any valid render token.
+- `getEmbedToken` (`(applicationId: string) => Promise<string>`) — an embed token your server mints with `POST /legal_entity_applications/:id/embed_token`. Called before each call the form makes. Keep it stable (`useCallback`).
+
+**Optional props:**
+
+- `applicationId` (`string | null`) — the application to show. Omit it to start a new one. Changing it remounts, so don't feed the id from `onApplicationCreated` back in.
+- `createApplication` (`(application: OnboardingCreateApplicationInput) => Promise<{ applicationId } | { errors }>`) — required without an `applicationId`. Create the application on your server from the first step's fields (the EIN included, which is why they pass through your page) and resolve its id, or the API's 422 `errors`.
+- `onApplicationCreated` (`({ applicationId }) => void`) — save the id to resume later.
+- `onStateChange` (`(event: OnboardingStateEvent) => void`) — `applicationId`, `applicationState`, `step` and `openRequirements` (`{ requirementType, message }`) after every read and save. No field values.
+- `onSubmitted` (`({ applicationId, applicationState }) => void`) — the applicant submitted or resubmitted. Confirm with the webhook.
+- `appearance` — see [Appearance](#appearance).
+
+### `refreshOnboarding({ iframeRef })`
+
+Reads the application again, e.g. after your server gets a `legal_entity_application.*` webhook or when the applicant returns to the tab.
 
 ### `AmosGooglePayButton`
 
