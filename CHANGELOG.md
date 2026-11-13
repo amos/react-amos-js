@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.13.2
+
+### Patch Changes
+
+- `<AmosOnboarding>`: a new application opens on a start screen (legal name, DBA, organization type and sub-category), and a survey step comes before review. `createApplication` now receives only the legal name and type, so no tax ID passes through your page, and a second argument, `organization`. Adds the `onSurveyCompleted` prop for the survey's answers, which Amos does not store. Requires `@amos.com/amos-js` 0.13.2.
+
 ## 0.13.1
 
 ### Patch Changes
