@@ -570,7 +570,7 @@ function PayoutBankAccountForm({ intentId }: { intentId: string }) {
 
 ### Onboarding an organization (legal entity application)
 
-`AmosOnboarding` is the whole application in one component. Pass the application id when you have one; without it, the form collects the first step and calls `createApplication`, which your server turns into `POST /legal_entity_applications`. Save the id it returns and pass it next time: the form resumes wherever the application stands, including any request from an underwriter.
+`AmosOnboarding` is the whole application in one component. Pass the application id when you have one; without it, the form opens on a start screen (legal name, DBA, organization type and sub-category) and calls `createApplication`, which your server turns into `POST /legal_entity_applications`. Save the id it returns and pass it next time: the form resumes wherever the application stands, including any request from an underwriter.
 
 ```tsx
 import { useCallback, useRef } from "react";
@@ -775,7 +775,7 @@ Reads the intent again and shows its current screen, e.g. on an interval while `
 
 ### `AmosOnboarding`
 
-The whole legal entity application in one iframe: business details, payments profile, principals, payout account and IRS EIN letter, then review and submit. When an underwriter asks for more, the same form shows the request and lets the applicant resubmit. Every field goes from the iframe to `/embed/legal_entity_applications/{id}/…`, except a new application's first step (see `createApplication`).
+The whole legal entity application in one iframe. A new applicant starts by naming the organization and choosing its type; then come business details, payments profile, principals, payout account and IRS EIN letter, a short survey, and review and submit. When an underwriter asks for more, the same form shows the request and lets the applicant resubmit. Every field goes from the iframe to `/embed/legal_entity_applications/{id}/…`, except a new application's start screen (see `createApplication`) and the survey (see `onSurveyCompleted`).
 
 **Required props:**
 
@@ -785,9 +785,10 @@ The whole legal entity application in one iframe: business details, payments pro
 **Optional props:**
 
 - `applicationId` (`string | null`) — the application to show. Omit it to start a new one. Changing it remounts, so don't feed the id from `onApplicationCreated` back in.
-- `createApplication` (`(application: OnboardingCreateApplicationInput) => Promise<{ applicationId } | { errors }>`) — required without an `applicationId`. Create the application on your server from the first step's fields (the EIN included, which is why they pass through your page) and resolve its id, or the API's 422 `errors`.
+- `createApplication` (`(application: OnboardingCreateApplicationInput, organization?: OnboardingOrganization) => Promise<{ applicationId } | { errors }>`) — required without an `applicationId`. Called when the applicant clicks **Start application**. `application` is the body for `POST /legal_entity_applications`: `legal_name`, plus the `entity_type` and `ownership_type` the organization type implies. Create it on your server and resolve its id, or the API's 422 `errors`. `organization` is `{ doingBusinessAs, organizationType, businessCategory, religiousAffiliation }`, for your own records; the form saves the DBA and category to the payments profile itself. No tax ID passes through your page.
 - `onApplicationCreated` (`({ applicationId }) => void`) — save the id to resume later.
 - `onStateChange` (`(event: OnboardingStateEvent) => void`) — `applicationId`, `applicationState`, `step` and `openRequirements` (`{ requirementType, message }`) after every read and save. No field values.
+- `onSurveyCompleted` (`({ applicationId, survey }) => void`) — the survey step's answers (`previousPlatform`, `referralSource`, `referralName`, `channels`, `websiteStatus`, `websiteUrl`), each time the applicant saves them. Amos does not store them; the form remembers them on the applicant's device only.
 - `onSubmitted` (`({ applicationId, applicationState }) => void`) — the applicant submitted or resubmitted. Confirm with the webhook.
 - `appearance` — see [Appearance](#appearance).
 

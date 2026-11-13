@@ -25,8 +25,10 @@ import {
   mountAmosOnboarding,
   type OnboardingCreateApplicationInput,
   type OnboardingCreateApplicationResult,
+  type OnboardingOrganization,
   type OnboardingStateEvent,
   type OnboardingSubmittedEvent,
+  type OnboardingSurveyEvent,
   type PaymentMethodFormDefaultValues,
   type PaymentMethodFormField,
   type PaymentMethodFormPostalCodeChangeEvent,
@@ -667,12 +669,15 @@ type AmosOnboardingProps = IframePassthroughProps & {
   getEmbedToken: (applicationId: string) => Promise<string>;
   /**
    * Create the application with your server's
-   * `POST /legal_entity_applications`, from the first step's fields.
-   * Required when there is no `applicationId`. Resolve with the API's 422
-   * `errors` to show them on the form.
+   * `POST /legal_entity_applications`, using `application` as the body: the
+   * legal name and type from the start screen. Required when there is no
+   * `applicationId`. Resolve with the API's 422 `errors` to show them on
+   * the form. `organization` is what the applicant chose there (public
+   * name, organization type, sub-category), for your own records.
    */
   createApplication?: (
     application: OnboardingCreateApplicationInput,
+    organization?: OnboardingOrganization,
   ) => Promise<OnboardingCreateApplicationResult>;
   /** Called once `createApplication` returns an id. Save it to resume later. */
   onApplicationCreated?: (event: { applicationId: string }) => void;
@@ -684,17 +689,24 @@ type AmosOnboardingProps = IframePassthroughProps & {
   onStateChange?: (event: OnboardingStateEvent) => void;
   /** Called when the applicant submits or resubmits. Verify with the webhook. */
   onSubmitted?: (event: OnboardingSubmittedEvent) => void;
+  /**
+   * Called with the applicant's answers each time they save the survey
+   * step. Amos does not store them; keep them if you want them.
+   */
+  onSurveyCompleted?: (event: OnboardingSurveyEvent) => void;
 };
 
 /**
- * The whole legal entity application in one iframe: business details,
- * payments profile, principals, payout account and EIN letter, then
- * review and submit. When an underwriter asks for more, the same form
- * shows what is needed and lets the applicant resubmit.
+ * The whole legal entity application in one iframe. A new applicant names
+ * the organization and its type to start; then come business details,
+ * payments profile, principals, payout account and EIN letter, a short
+ * survey, and review and submit. When an underwriter asks for more, the
+ * same form shows what is needed and lets the applicant resubmit.
  *
  * Every field goes from the iframe straight to Amos, except a new
- * application's first step, which `createApplication` sends from your
- * server.
+ * application's start screen (name and type, no tax ID), which
+ * `createApplication` sends from your server, and the survey, which is
+ * yours to keep.
  */
 export function AmosOnboarding({
   ref,
@@ -706,6 +718,7 @@ export function AmosOnboarding({
   appearance,
   onStateChange,
   onSubmitted,
+  onSurveyCompleted,
   style,
   ...rest
 }: AmosOnboardingProps) {
@@ -724,6 +737,7 @@ export function AmosOnboarding({
       appearance,
       onStateChange,
       onSubmitted,
+      onSurveyCompleted,
     },
     remountDeps: [renderToken, applicationId],
     iframePassthrough: { style, ...rest },
@@ -734,6 +748,7 @@ export function AmosOnboarding({
       onApplicationCreated,
       onStateChange,
       onSubmitted,
+      onSurveyCompleted,
     ],
   });
 
