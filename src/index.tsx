@@ -28,7 +28,6 @@ import {
   type OnboardingOrganization,
   type OnboardingStateEvent,
   type OnboardingSubmittedEvent,
-  type OnboardingSurveyEvent,
   type PaymentMethodFormDefaultValues,
   type PaymentMethodFormField,
   type PaymentMethodFormPostalCodeChangeEvent,
@@ -689,11 +688,6 @@ type AmosOnboardingProps = IframePassthroughProps & {
   onStateChange?: (event: OnboardingStateEvent) => void;
   /** Called when the applicant submits or resubmits. Verify with the webhook. */
   onSubmitted?: (event: OnboardingSubmittedEvent) => void;
-  /**
-   * Called with the applicant's answers each time they save the survey
-   * step. Amos does not store them; keep them if you want them.
-   */
-  onSurveyCompleted?: (event: OnboardingSurveyEvent) => void;
 };
 
 /**
@@ -718,7 +712,6 @@ export function AmosOnboarding({
   appearance,
   onStateChange,
   onSubmitted,
-  onSurveyCompleted,
   style,
   ...rest
 }: AmosOnboardingProps) {
@@ -737,7 +730,6 @@ export function AmosOnboarding({
       appearance,
       onStateChange,
       onSubmitted,
-      onSurveyCompleted,
     },
     remountDeps: [renderToken, applicationId],
     iframePassthrough: { style, ...rest },
@@ -748,7 +740,6 @@ export function AmosOnboarding({
       onApplicationCreated,
       onStateChange,
       onSubmitted,
-      onSurveyCompleted,
     ],
   });
 
