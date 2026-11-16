@@ -1,6 +1,6 @@
 {
   "name": "@amos.com/react-amos-js",
-  "version": "0.13.2",
+  "version": "0.13.3",
   "main": "dist/index.js",
   "repository": {
     "type": "git",
@@ -63,7 +63,7 @@
     "vitest": "5.0.1"
   },
   "dependencies": {
-    "@amos.com/amos-js": "0.13.2",
+    "@amos.com/amos-js": "0.13.3",
     "@types/googlepay": "0.7.13"
   },
   "peerDependencies": {

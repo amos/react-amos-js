@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.13.3
+
+### Patch Changes
+
+- `<AmosOnboarding>`: the survey step's answers are now saved to the application on Amos (`application_survey`) like every other step, so the form no longer hands them to your page. Removes the `onSurveyCompleted` prop; read the answers with the API instead. The `organization` argument to `createApplication` no longer has `religiousAffiliation`. Requires `@amos.com/amos-js` 0.13.3.
+
 ## 0.13.2
 
 ### Patch Changes
