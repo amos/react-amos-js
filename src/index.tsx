@@ -697,10 +697,9 @@ type AmosOnboardingProps = IframePassthroughProps & {
  * survey, and review and submit. When an underwriter asks for more, the
  * same form shows what is needed and lets the applicant resubmit.
  *
- * Every field goes from the iframe straight to Amos, except a new
- * application's start screen (name and type, no tax ID), which
- * `createApplication` sends from your server, and the survey, which is
- * yours to keep.
+ * Every field goes from the iframe straight to Amos, including the survey,
+ * except a new application's start screen (name and type, no tax ID), which
+ * `createApplication` sends from your server.
  */
 export function AmosOnboarding({
   ref,
