@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.13.4
+
+### Patch Changes
+
+- Refactor
+
 ## 0.13.3
 
 ### Patch Changes

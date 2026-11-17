@@ -775,7 +775,7 @@ Reads the intent again and shows its current screen, e.g. on an interval while `
 
 ### `AmosOnboarding`
 
-The whole legal entity application in one iframe. A new applicant starts by naming the organization and choosing its type; then come business details, payments profile, principals, payout account and IRS EIN letter, a short survey, and review and submit. When an underwriter asks for more, the same form shows the request and lets the applicant resubmit. Every field goes from the iframe to `/embed/legal_entity_applications/{id}/…`, except a new application's start screen (see `createApplication`) and the survey (see `onSurveyCompleted`).
+The whole legal entity application in one iframe. A new applicant starts by naming the organization and choosing its type; from then on the form opens on a task list of its sections (organization details, payments profile, the applicant's own details, other owners and officers, payout account, IRS EIN letter, a short survey), each with a status and done in any order, then a check-your-answers page to submit from. The applicant verifies their own email with a code, which is what an application needs to be submitted and what lets them invite the other owners and officers. When an underwriter asks for more, the request shows on the task list and the applicant resubmits from the same form. Every field goes from the iframe to `/embed/legal_entity_applications/{id}/…`, except a new application's start screen (see `createApplication`) and the survey (see `onSurveyCompleted`).
 
 **Required props:**
 
