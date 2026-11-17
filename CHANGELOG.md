@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.13.5
+
+### Patch Changes
+
+- `<AmosOnboarding>`: Plaid Link opens on your page when the applicant links the payout bank account or a principal verifies their identity. Nothing to wire up, but your page's CSP has to allow Plaid as it does for `<AmosBankAccountPaymentMethodForm>`. Requires `@amos.com/amos-js` 0.13.5.
+
 ## 0.13.4
 
 ### Patch Changes
