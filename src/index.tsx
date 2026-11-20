@@ -23,6 +23,7 @@ import {
   mountAmosExternalBankAccountForm,
   mountAmosGooglePayButton,
   mountAmosOnboarding,
+  type OnboardingAppearance,
   type OnboardingCreateApplicationInput,
   type OnboardingCreateApplicationResult,
   type OnboardingOrganization,
@@ -680,7 +681,12 @@ type AmosOnboardingProps = IframePassthroughProps & {
   ) => Promise<OnboardingCreateApplicationResult>;
   /** Called once `createApplication` returns an id. Save it to resume later. */
   onApplicationCreated?: (event: { applicationId: string }) => void;
-  appearance?: Appearance;
+  /**
+   * Theme variables, fonts and per-part rules, as on the payment forms,
+   * plus the parts only this form has (`.Button--primary`, `.Notice`,
+   * `.PickerItem`, …). Changing the prop restyles the mounted form.
+   */
+  appearance?: OnboardingAppearance;
   /**
    * Called after every read and save with the application's state, the
    * screen shown, and the requirements still open. Holds no field values.

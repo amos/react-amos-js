@@ -173,6 +173,58 @@ Set `labels` to control how field labels are rendered in card and bank account f
 
 Radio groups (e.g. account type) always use an above-style group label regardless of this setting.
 
+
+### Application form
+
+`<AmosOnboarding>` takes the same `appearance` (type `OnboardingAppearance`), so one object can style your payment forms and the application form. `themeVariables`, `fonts` and `rules` work as above, and changing the prop restyles the mounted form. Its labels are always above the field, so there is no `labels`, and the floating-label, `--field-gap`, `--control-gap` and `--radio-size` variables do nothing there.
+
+```tsx
+<AmosOnboarding
+  renderToken={renderToken}
+  getEmbedToken={getEmbedToken}
+  appearance={{
+    themeVariables: {
+      "--primary": "oklch(0.5 0.2 240)",
+      "--radius": "0.25rem",
+      "--success": "oklch(0.6 0.15 150)",
+    },
+    rules: {
+      ".Input": { borderRadius: "0" },
+      ".Heading": { fontFamily: "Source Serif 4, ui-serif, serif" },
+      ".Button": { borderRadius: "999px" },
+      ".Button--primary": { backgroundColor: "var(--primary)" },
+      ".Notice--warning": { borderColor: "var(--warning)" },
+    },
+  }}
+/>
+```
+
+Two more theme variables color its statuses: `--success` (default `oklch(0.55 0.14 155)`) for completed, verified and approved, and `--warning` (default `oklch(0.7 0.15 70)`) for what needs attention. Rule values may use them as `var(--success)` / `var(--warning)`.
+
+`rules` accepts the selectors above (`.Input`, `.Label`, `.Error`, …; it has no dropdown or radio parts) and these for the parts only this form has:
+
+| Selector | Targets |
+| --- | --- |
+| `.Heading` | Screen titles |
+| `.SectionTitle` | Titles of groups of fields and of cards |
+| `.Hint` | Help text under a field |
+| `.Button` | Every button except text links |
+| `.Button:hover`, `.Button:focus`, `.Button:disabled` | Those buttons in the given state |
+| `.Button--primary`, `.Button--primary:hover` | The main action of a screen (Save, Continue, Submit) |
+| `.Button--secondary`, `.Button--secondary:hover` | Outlined buttons |
+| `.Button--ghost`, `.Button--ghost:hover` | Borderless buttons (Back, Cancel, Remove) |
+| `.Link`, `.Link:hover` | Buttons drawn as text links (Change, Replace, Fix) |
+| `.Block` | Bordered containers: the task list, cards, summaries, the upload area |
+| `.PickerItem`, `.PickerItem:hover` | One option of a pick-one group of cards |
+| `.PickerItem--selected` | The chosen option |
+| `.Checkbox`, `.Checkbox--checked` | The box of a checkbox |
+| `.CheckboxLabel` | The text next to a checkbox |
+| `.Notice` | Every notice, whatever its tone |
+| `.Notice--error`, `.Notice--warning`, `.Notice--success` | Notices of that tone |
+| `.Badge` | Status pills (Completed, Verified, Submitted, …) |
+
+A variant or state (`.Button--primary`, `.Button:hover`) overrides its part (`.Button`) whichever comes first. Between two that both apply, such as `.Button--primary` and `.Button:hover`, the later key wins; `.Button--primary:hover` beats both. These selectors are ignored by the payment forms, and need an embed that knows them: until then the form keeps its defaults for those parts.
+
 ### Available theme variables
 
 | Variable                           | Purpose                                                  | Default                         |
@@ -789,7 +841,7 @@ The whole legal entity application in one iframe. A new applicant starts by nami
 - `onApplicationCreated` (`({ applicationId }) => void`) — save the id to resume later.
 - `onStateChange` (`(event: OnboardingStateEvent) => void`) — `applicationId`, `applicationState`, `step` and `openRequirements` (`{ requirementType, message }`) after every read and save. No field values.
 - `onSubmitted` (`({ applicationId, applicationState }) => void`) — the applicant submitted or resubmitted. Confirm with the webhook.
-- `appearance` — see [Appearance](#appearance).
+- `appearance` (`OnboardingAppearance`) — see [Application form](#application-form).
 
 ### `refreshOnboarding({ iframeRef })`
 

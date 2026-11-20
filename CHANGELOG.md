@@ -1,5 +1,11 @@
 # @amos.com/react-amos-js
 
+## 0.14.0
+
+### Minor Changes
+
+- `<AmosOnboarding>`: `appearance` is now an `OnboardingAppearance`, the payment forms' appearance API with the application form's own parts. `rules` takes every `AppearanceRuleSelector` plus `.Heading`, `.SectionTitle`, `.Hint`, `.Button` (with `:hover`, `:focus`, `:disabled`, and the `--primary`, `--secondary` and `--ghost` variants), `.Link`, `.Block`, `.PickerItem` (and `--selected`), `.Checkbox` (and `--checked`), `.CheckboxLabel`, `.Notice` (and `--error`, `--warning`, `--success`) and `.Badge`. `themeVariables` gains `--success` and `--warning` for status colors. An `Appearance` is still accepted; there is no `labels` (labels are always above the field). Re-exports the `OnboardingAppearance`, `OnboardingAppearanceRuleSelector` and `OnboardingThemeVariable` types. Requires `@amos.com/amos-js` 0.14.0.
+
 ## 0.13.5
 
 ### Patch Changes
