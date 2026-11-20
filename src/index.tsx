@@ -670,10 +670,11 @@ type AmosOnboardingProps = IframePassthroughProps & {
   /**
    * Create the application with your server's
    * `POST /legal_entity_applications`, using `application` as the body: the
-   * legal name and type from the start screen. Required when there is no
-   * `applicationId`. Resolve with the API's 422 `errors` to show them on
-   * the form. `organization` is what the applicant chose there (public
-   * name, organization type, sub-category), for your own records.
+   * legal name and entity type from the start screen. Required when there
+   * is no `applicationId`. Resolve with the API's 422 `errors` to show them
+   * on the form. `organization` is what the applicant chose there (name,
+   * organization type, category), for your own records; it is `undefined`
+   * for a government agency.
    */
   createApplication?: (
     application: OnboardingCreateApplicationInput,
@@ -697,15 +698,16 @@ type AmosOnboardingProps = IframePassthroughProps & {
 };
 
 /**
- * The whole legal entity application in one iframe. A new applicant names
- * the organization and its type to start; then come business details,
- * payments profile, principals, payout account and EIN letter, a short
- * survey, and review and submit. When an underwriter asks for more, the
- * same form shows what is needed and lets the applicant resubmit.
+ * The whole legal entity application in one iframe. A new applicant gives
+ * the legal name and the kind of organization to start; then come six
+ * sections in any order (Legal Entity, Merchant, Principals, Bank Account,
+ * Supporting Documentation, Survey), and review and submit. When an
+ * underwriter asks for more, the same form shows what is needed and lets
+ * the applicant resubmit.
  *
  * Every field goes from the iframe straight to Amos, including the survey,
- * except a new application's start screen (name and type, no tax ID), which
- * `createApplication` sends from your server.
+ * except a new application's start screen (name and entity type, no tax
+ * ID), which `createApplication` sends from your server.
  */
 export function AmosOnboarding({
   ref,

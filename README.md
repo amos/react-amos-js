@@ -10,13 +10,14 @@ It is a thin wrapper around [`@amos.com/amos-js`](../amos-js) that adapts the fr
 npm install @amos.com/react-amos-js @amos.com/node
 ```
 
-`@amos.com/node` is a **peer dependency** (requires `>=0.1.65`). Install it in your app for OpenAPI schema types (for example `components["schemas"]["CreatePaymentIntentInput"]`) used in the examples below, and for your server-side Amos API client. React (`^17`, `^18`, or `^19`) is also a peer dependency.
+`@amos.com/node` is a **peer dependency** (requires `>=0.1.80`). Install it in your app for OpenAPI schema types (for example `components["schemas"]["CreatePaymentIntentInput"]`) used in the examples below, and for your server-side Amos API client. React (`^17`, `^18`, or `^19`) is also a peer dependency.
 
 ## What it gives you
 
 - React components for the iframe payment method forms: `AmosCreditCardPaymentMethodForm`, `AmosBankAccountPaymentMethodForm`, `AmosGooglePayButton`, `AmosApplePayButton`.
+- `AmosExternalBankAccountForm` (link a bank account to pay out to) and `AmosOnboarding` (the legal entity application), with `confirmExternalBankAccount`, `refreshExternalBankAccount` and `refreshOnboarding`.
 - React-flavoured iframe message helpers that accept a React `ref`: `validateForm({ iframeRef })`, `confirmPayment({ iframeRef, token })`, `confirmSetup({ iframeRef, token })`, `resetForm({ iframeRef })`, `focusField({ iframeRef, field })`.
-- Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `formatGooglePayPaymentData`, `resetForm`, `focusField`, `openPlaidPopupLink`, `plaidAccountIdFromMetadata`, `ConfirmPaymentResult`, `ConfirmSetupResult`, `FormattedGooglePayPaymentData`, `WalletCustomerCreateAttributes`, `WalletPostalAddress`, `WalletContactRequirements`, `Appearance`, `FontSource`, `AppearanceRuleSelector`, `Message`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, `ExternalBankAccountConfirmResult`, `ExternalBankAccountScreen`, etc.
+- Re-exports of the `@amos.com/amos-js` helpers and types that come up in client code: `createMessage`, `decodeJwt`, `getEmbedOrigin`, `formatGooglePayPaymentData`, `resetForm`, `focusField`, `openPlaidPopupLink`, `plaidAccountIdFromMetadata`, `ConfirmPaymentResult`, `ConfirmSetupResult`, `FormattedGooglePayPaymentData`, `WalletCustomerCreateAttributes`, `WalletPostalAddress`, `WalletContactRequirements`, `Appearance`, `OnboardingAppearance`, `FontSource`, `AppearanceRuleSelector`, `Message`, `PaymentMethodFormDefaultValues`, `PaymentMethodFormField`, `ExternalBankAccountConfirmResult`, `ExternalBankAccountScreen`, etc.
 
 > **Note:** `@amos.com/react-amos-js` is the client-side half of the Amos integration. For end-to-end payment processing you also need `@amos.com/node` on your server (creating payment intents, handling webhooks, etc.). The same `@amos.com/node` package is listed as a peer dependency so you can import its OpenAPI types in client-side TypeScript code.
 
@@ -82,7 +83,7 @@ In short, your app orchestrates the payment flow, while sensitive payment data s
 
 ## Appearance
 
-Card and bank components accept an optional `appearance` prop that controls the look of the iframe UI. It contains a `themeVariables` object whose keys are CSS custom-property names and whose values are strings, an optional `labels` setting for field label placement, and optional `fonts` to load webfonts inside the iframe. You can update this prop after page load to update the iframe appearance. Wallet buttons do not take `appearance`.
+Card and bank components accept an optional `appearance` prop that controls the look of the iframe UI, as does `AmosExternalBankAccountForm`; `AmosOnboarding` takes a superset (see [Application form](#application-form)). It contains a `themeVariables` object whose keys are CSS custom-property names and whose values are strings, an optional `labels` setting for field label placement, and optional `fonts` to load webfonts inside the iframe. You can update this prop after page load to update the iframe appearance. Wallet buttons do not take `appearance`.
 
 ```tsx
 <AmosCreditCardPaymentMethodForm
@@ -622,7 +623,7 @@ function PayoutBankAccountForm({ intentId }: { intentId: string }) {
 
 ### Onboarding an organization (legal entity application)
 
-`AmosOnboarding` is the whole application in one component. Pass the application id when you have one; without it, the form opens on a start screen (legal name, DBA, organization type and sub-category) and calls `createApplication`, which your server turns into `POST /legal_entity_applications`. Save the id it returns and pass it next time: the form resumes wherever the application stands, including any request from an underwriter.
+`AmosOnboarding` is the whole application in one component. Pass the application id when you have one; without it, the form opens on a start screen (legal name and kind of organization) and calls `createApplication`, which your server turns into `POST /legal_entity_applications`. Save the id it returns and pass it next time: the form resumes wherever the application stands, including any request from an underwriter.
 
 ```tsx
 import { useCallback, useRef } from "react";
@@ -827,7 +828,7 @@ Reads the intent again and shows its current screen, e.g. on an interval while `
 
 ### `AmosOnboarding`
 
-The whole legal entity application in one iframe. A new applicant starts by naming the organization and choosing its type; from then on the form opens on a task list of its sections (organization details, payments profile, the applicant's own details, other owners and officers, payout account, IRS EIN letter, a short survey), each with a status and done in any order, then a check-your-answers page to submit from. The applicant verifies their own email with a code, which is what an application needs to be submitted and what lets them invite the other owners and officers. When an underwriter asks for more, the request shows on the task list and the applicant resubmits from the same form. Every field goes from the iframe to `/embed/legal_entity_applications/{id}/…`, except a new application's start screen (see `createApplication`). Plaid Link opens on your page, as an overlay, when the applicant links the payout bank account or a principal verifies their identity. The form makes the link token and records the result, so there is nothing to wire up, but your page's CSP has to allow Plaid as it does for [`AmosBankAccountPaymentMethodForm`](#amosbankaccountpaymentmethodform).
+The whole legal entity application in one iframe. A new applicant starts by giving the legal name and saying what kind of organization it is (nonprofit, for-profit business or government agency; a for-profit picks its entity type, a nonprofit its category); from then on the form opens on a task list of six sections (Legal Entity, Merchant, Principals, Bank Account, Supporting Documentation for the IRS EIN letter, Survey), each with a status and done in any order, then a check-your-answers page to submit from. Under Principals, the applicant adds themselves if they are an owner or officer, confirming their email with a 6-digit code, and invites the others, who each complete their own details and verify their identity from an emailed link. Nobody has to verify before invites go out or before submitting, but Amos keeps the application pending until one owner or officer has verified both their email and their identity. When an underwriter asks for more, the request shows on the task list and the applicant resubmits from the same form. Every field goes from the iframe to `/embed/legal_entity_applications/{id}/…`, except a new application's start screen (see `createApplication`). Plaid Link opens on your page, as an overlay, when the applicant links the payout bank account or a principal verifies their identity. The form makes the link token and records the result, so there is nothing to wire up, but your page's CSP has to allow Plaid as it does for [`AmosBankAccountPaymentMethodForm`](#amosbankaccountpaymentmethodform).
 
 **Required props:**
 
@@ -837,7 +838,7 @@ The whole legal entity application in one iframe. A new applicant starts by nami
 **Optional props:**
 
 - `applicationId` (`string | null`) — the application to show. Omit it to start a new one. Changing it remounts, so don't feed the id from `onApplicationCreated` back in.
-- `createApplication` (`(application: OnboardingCreateApplicationInput, organization?: OnboardingOrganization) => Promise<{ applicationId } | { errors }>`) — required without an `applicationId`. Called when the applicant clicks **Start application**. `application` is the body for `POST /legal_entity_applications`: `legal_name`, plus the `entity_type` and `ownership_type` the organization type implies. Create it on your server and resolve its id, or the API's 422 `errors`. `organization` is `{ doingBusinessAs, organizationType, businessCategory }`, for your own records; the form saves the DBA and category to the payments profile itself. No tax ID passes through your page.
+- `createApplication` (`(application: OnboardingCreateApplicationInput, organization?: OnboardingOrganization) => Promise<{ applicationId } | { errors }>`) — required without an `applicationId`. Called when the applicant clicks **Start application**. `application` is the body for `POST /legal_entity_applications`: `legal_name`, plus the `entity_type` the applicant's choices settle and, when that settles it, the `ownership_type`. Create it on your server and resolve its id, or the API's 422 `errors`. `organization` is `{ doingBusinessAs, organizationType, businessCategory }`, for your own records: `doingBusinessAs` is the legal name at this point, and it is `undefined` for a government agency, which the SDK has no organization type for. The form saves the name and category to the merchant application itself. No tax ID passes through your page.
 - `onApplicationCreated` (`({ applicationId }) => void`) — save the id to resume later.
 - `onStateChange` (`(event: OnboardingStateEvent) => void`) — `applicationId`, `applicationState`, `step` and `openRequirements` (`{ requirementType, message }`) after every read and save. No field values.
 - `onSubmitted` (`({ applicationId, applicationState }) => void`) — the applicant submitted or resubmitted. Confirm with the webhook.
