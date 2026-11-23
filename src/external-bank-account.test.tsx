@@ -112,6 +112,44 @@ describe("AmosExternalBankAccountForm", () => {
     expect(iframe?.style.width).toBe("");
   });
 
+  test("does not update when a re-render changes no option", () => {
+    const appearance = { themeVariables: { "--primary": "blue" } };
+    const element = () => (
+      <AmosExternalBankAccountForm
+        renderToken="rt_1"
+        getEmbedToken={getEmbedToken}
+        intentId="ebai_1"
+        appearance={appearance}
+      />
+    );
+    render(element());
+    render(element());
+
+    expect(amos.mountAmosExternalBankAccountForm).toHaveBeenCalledTimes(1);
+    expect(amos.controllers[0]?.update).not.toHaveBeenCalled();
+  });
+
+  test("a new callback does not re-send the appearance", () => {
+    const appearance = { themeVariables: { "--primary": "blue" } };
+    const element = (onValidityChange: () => void) => (
+      <AmosExternalBankAccountForm
+        renderToken="rt_1"
+        getEmbedToken={getEmbedToken}
+        intentId="ebai_1"
+        appearance={appearance}
+        onValidityChange={onValidityChange}
+      />
+    );
+    render(element(() => {}));
+    const next = () => {};
+    render(element(next));
+
+    expect(amos.controllers[0]?.update).toHaveBeenCalledTimes(1);
+    expect(amos.controllers[0]?.update).toHaveBeenCalledWith({
+      onValidityChange: next,
+    });
+  });
+
   test("updates callbacks in place and remounts for a new intent", () => {
     render(
       <AmosExternalBankAccountForm
@@ -132,9 +170,9 @@ describe("AmosExternalBankAccountForm", () => {
       />,
     );
     expect(amos.mountAmosExternalBankAccountForm).toHaveBeenCalledTimes(1);
-    expect(first?.update).toHaveBeenLastCalledWith(
-      expect.objectContaining({ onStateChange }),
-    );
+    // Only the option that changed is sent.
+    expect(first?.update).toHaveBeenCalledTimes(1);
+    expect(first?.update).toHaveBeenLastCalledWith({ onStateChange });
 
     render(
       <AmosExternalBankAccountForm

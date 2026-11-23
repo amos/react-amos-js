@@ -34,7 +34,12 @@ export default defineConfig({
       formats: ["es", "cjs"],
     },
     rollupOptions: {
-      external: ["react", "react/jsx-runtime", "@amos.com/amos-js"],
+      external: [
+        "react",
+        "react/jsx-runtime",
+        "@amos.com/amos-js",
+        "@amos.com/amos-js/internal",
+      ],
       output: {
         globals: {
           react: "React",

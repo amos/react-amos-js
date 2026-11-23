@@ -1,42 +1,37 @@
 /// <reference types="googlepay" />
 
 import {
-  type Appearance,
-  type ApplePayButtonElementProps,
+  type AmosApplePayButtonOptions,
+  type AmosBankAccountPaymentMethodFormOptions,
+  type AmosCreditCardPaymentMethodFormOptions,
+  type AmosExternalBankAccountFormOptions,
+  type AmosGooglePayButtonOptions,
+  type AmosOnboardingOptions,
   confirmPayment as amosConfirmPayment,
   confirmSetup as amosConfirmSetup,
   focusField as amosFocusField,
   resetForm as amosResetForm,
   validateForm as amosValidateForm,
-  type BillingAddressRequirement,
   type ConfirmPaymentResult,
   type ConfirmSetupResult,
   type CreditCardAdditionalFields,
   confirmExternalBankAccountIntent,
   type ExternalBankAccountConfirmResult,
-  type ExternalBankAccountStateEvent,
-  ensureSkeletonStyles,
-  type GooglePayButtonElementProps,
   mountAmosApplePayButton,
   mountAmosBankAccountPaymentMethodForm,
   mountAmosCreditCardPaymentMethodForm,
   mountAmosExternalBankAccountForm,
   mountAmosGooglePayButton,
   mountAmosOnboarding,
-  type OnboardingAppearance,
-  type OnboardingCreateApplicationInput,
-  type OnboardingCreateApplicationResult,
-  type OnboardingOrganization,
-  type OnboardingStateEvent,
-  type OnboardingSubmittedEvent,
   type PaymentMethodFormDefaultValues,
   type PaymentMethodFormField,
-  type PaymentMethodFormPostalCodeChangeEvent,
   refreshExternalBankAccountIntent,
   refreshOnboarding as refreshOnboardingIframe,
-  resolveWalletButtonSkeletonBorderRadius,
-  type WalletCustomerCreateAttributes,
 } from "@amos.com/amos-js";
+import {
+  ensureSkeletonStyles,
+  resolveWalletButtonSkeletonBorderRadius,
+} from "@amos.com/amos-js/internal";
 import type { components } from "@amos.com/node";
 import {
   type ComponentProps,
@@ -213,6 +208,21 @@ type AmosEmbedController = {
   destroy: () => void;
 };
 
+/**
+ * Callbacks the mount helpers wrap to reveal the iframe. The components do
+ * not take them as props.
+ */
+type RevealCallbacks = "onHeightChange" | "onAppearanceReady" | "onIframeReady";
+
+/**
+ * Mount an Amos iframe into `containerRef` and keep it in step with
+ * `options`.
+ *
+ * The iframe is mounted again only when `remountDeps` change. On every other
+ * render, the options whose identity changed since the last render are
+ * passed to `controller.update()`, and nothing is sent when none did. So a
+ * new callback does not also re-send `appearance` or `defaultValues`.
+ */
 function useAmosEmbed<TOptions extends Record<string, unknown>>({
   containerRef,
   iframeRef,
@@ -220,7 +230,6 @@ function useAmosEmbed<TOptions extends Record<string, unknown>>({
   options,
   remountDeps,
   iframePassthrough,
-  updateDeps,
 }: {
   containerRef: RefObject<HTMLDivElement | null>;
   iframeRef: ForwardedIframeRef;
@@ -228,9 +237,10 @@ function useAmosEmbed<TOptions extends Record<string, unknown>>({
   options: TOptions;
   remountDeps: Array<unknown>;
   iframePassthrough: IframePassthroughProps;
-  updateDeps: Array<unknown>;
 }): void {
   const controllerRef = useRef<AmosEmbedController | null>(null);
+  /** The options the mounted controller already has. */
+  const appliedOptionsRef = useRef(options);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: remount only when remountDeps change
   useLayoutEffect(() => {
@@ -241,6 +251,7 @@ function useAmosEmbed<TOptions extends Record<string, unknown>>({
 
     const controller = mount(container, options);
     controllerRef.current = controller;
+    appliedOptionsRef.current = options;
     setForwardedRef(iframeRef, controller.iframe);
     applyIframePassthrough(controller.iframe, iframePassthrough);
 
@@ -251,12 +262,20 @@ function useAmosEmbed<TOptions extends Record<string, unknown>>({
     };
   }, [...remountDeps]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: sync listener options when updateDeps change
   useEffect(() => {
-    controllerRef.current?.update(options);
-  }, [...updateDeps]);
+    const applied = appliedOptionsRef.current;
+    appliedOptionsRef.current = options;
 
-  useEffect(() => {
+    const patch: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(options)) {
+      if (!Object.is(value, applied[key])) {
+        patch[key] = value;
+      }
+    }
+    if (Object.keys(patch).length > 0) {
+      controllerRef.current?.update(patch);
+    }
+
     const iframe = controllerRef.current?.iframe;
     if (iframe) {
       applyIframePassthrough(iframe, iframePassthrough);
@@ -317,54 +336,25 @@ function WalletButtonSlot({
   );
 }
 
-type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps & {
-  renderToken: string;
-  appearance?: Appearance;
-  /**
-   * Called when form validity changes. `isValid` is true when all
-   * required fields are present and valid. Does not include PCI data.
-   */
+/**
+ * `onValidityChange` as the components declare it: `isValid` only. For the
+ * bank form it is also true once Plaid Embedded Link has returned
+ * credentials. Does not include PCI data.
+ */
+type ValidityChangeProp = {
   onValidityChange?: (event: { isValid: boolean }) => void;
-  /**
-   * Called when the detected card brand changes. `brand` is the matched
-   * network, or `null` when the field is empty or the digits do not
-   * match a known brand. Does not include PCI data.
-   */
-  onCardBrandChanged?: (event: {
-    brand:
-      | "visa"
-      | "mastercard"
-      | "amex"
-      | "discover"
-      | "diners"
-      | "jcb"
-      | null;
-  }) => void;
-  /**
-   * Called when the customer commits a billing postal code, or clears
-   * one. `postalCode` is null when a finished code becomes incomplete.
-   * Incomplete keystrokes and `defaultValues` writes are omitted.
-   */
-  onPostalCodeChange?: (event: PaymentMethodFormPostalCodeChangeEvent) => void;
-  /**
-   * Called when the customer presses Escape in the iframe. PCI-safe —
-   * no field values. Use this to close a host modal that contains the
-   * iframe. Not fired while an iframe dropdown or address suggestion
-   * list is open, or while Plaid Embedded Institution Search is
-   * showing.
-   */
-  onEscapeKeyPressed?: () => void;
-  additionalFields?: CreditCardAdditionalFields;
-  billingAddressRequirement?: BillingAddressRequirement;
-  /**
-   * Seed cardholder name and billing address. Provided keys overwrite
-   * matching fields, including ones the customer already edited.
-   * `cardholderName` prefills the cardholder input and is confirmed only
-   * when `additionalFields.cardholderName` is true. Billing fields,
-   * including `billingAddress.name`, `email`, and `phone`, are sent on
-   * confirm even when those inputs are hidden.
-   */
-  defaultValues?: PaymentMethodFormDefaultValues;
+};
+
+type AmosCreditCardPaymentMethodFormProps = IframePassthroughProps &
+  Omit<
+    AmosCreditCardPaymentMethodFormOptions,
+    RevealCallbacks | "onValidityChange"
+  > &
+  ValidityChangeProp;
+
+/** A new object each render would look like a changed option. */
+const DEFAULT_ADDITIONAL_FIELDS: CreditCardAdditionalFields = {
+  cardholderName: false,
 };
 
 export function AmosCreditCardPaymentMethodForm({
@@ -375,7 +365,7 @@ export function AmosCreditCardPaymentMethodForm({
   onCardBrandChanged,
   onPostalCodeChange,
   onEscapeKeyPressed,
-  additionalFields = { cardholderName: false },
+  additionalFields = DEFAULT_ADDITIONAL_FIELDS,
   billingAddressRequirement = "country",
   defaultValues,
   style,
@@ -404,76 +394,22 @@ export function AmosCreditCardPaymentMethodForm({
       billingAddressRequirement,
     ],
     iframePassthrough: { style, ...rest },
-    updateDeps: [
-      appearance,
-      additionalFields,
-      billingAddressRequirement,
-      defaultValues,
-      onValidityChange,
-      onCardBrandChanged,
-      onPostalCodeChange,
-      onEscapeKeyPressed,
-    ],
   });
 
   return <div ref={containerRef} />;
 }
 
-type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps & {
-  renderToken: string;
-  appearance?: Appearance;
-  /**
-   * Called when form validity changes. `isValid` is true when all
-   * required fields are present and valid, or when Plaid Embedded Link
-   * has returned credentials. Does not include PCI data.
-   */
-  onValidityChange?: (event: { isValid: boolean }) => void;
-  /**
-   * Called when the customer presses Escape in the iframe. PCI-safe —
-   * no field values. Use this to close a host modal that contains the
-   * iframe. Not fired while an iframe dropdown or address suggestion
-   * list is open, or while Plaid Embedded Institution Search is
-   * showing.
-   */
-  onEscapeKeyPressed?: () => void;
-  /**
-   * Called when the customer commits a billing postal code, or clears
-   * one. `postalCode` is null when a finished code becomes incomplete.
-   * Incomplete keystrokes and `defaultValues` writes are omitted.
-   */
-  onPostalCodeChange?: (event: PaymentMethodFormPostalCodeChangeEvent) => void;
-  billingAddressRequirement?: BillingAddressRequirement;
-  /**
-   * Seed account holder name and billing address. Provided keys
-   * overwrite matching fields, including ones the customer already
-   * edited. `accountHolderName` prefills the account-holder input.
-   * Billing fields, including `billingAddress.name`, `email`, and
-   * `phone`, are sent on confirm even when those inputs are hidden.
-   */
-  defaultValues?: PaymentMethodFormDefaultValues;
-  /**
-   * When true, hide the routing/account iframe and mount Plaid Embedded
-   * Institution Search in the parent. A 350px pulse skeleton covers the
-   * slot until Plaid's `onLoad` (1.5s fallback). Ignored when `intent`
-   * is `"setup"` (setup always shows Plaid) or when the render token
-   * disables verification.
-   *
-   * Changing this prop hides or shows Link; it does not remount the
-   * bank form or destroy the Embedded handler.
-   *
-   * @default false
-   */
-  requireAchVerification?: boolean;
-  /**
-   * `"setup"` saves a bank account for later charges and always shows
-   * Plaid (unless the render token disables verification). `"payment"`
-   * uses {@link AmosBankAccountPaymentMethodFormProps.requireAchVerification}.
-   *
-   * @default "payment"
-   */
-  intent?: "payment" | "setup";
-};
+type AmosBankAccountPaymentMethodFormProps = IframePassthroughProps &
+  Omit<
+    AmosBankAccountPaymentMethodFormOptions,
+    RevealCallbacks | "onValidityChange" | "plaidVerificationId"
+  > &
+  ValidityChangeProp;
 
+/**
+ * The secure bank account form. Changing `requireAchVerification` hides or
+ * shows Plaid Embedded Link; it does not remount the form.
+ */
 export function AmosBankAccountPaymentMethodForm({
   ref,
   renderToken,
@@ -509,64 +445,24 @@ export function AmosBankAccountPaymentMethodForm({
     // Embedded Link instead of destroying it when the flag flips.
     remountDeps: [renderToken, billingAddressRequirement, intent],
     iframePassthrough: { style, ...rest },
-    updateDeps: [
-      appearance,
-      billingAddressRequirement,
-      defaultValues,
-      requireAchVerification,
-      intent,
-      onValidityChange,
-      onPostalCodeChange,
-      onEscapeKeyPressed,
-    ],
   });
 
   return <div ref={containerRef} />;
 }
 
-type AmosExternalBankAccountFormProps = IframePassthroughProps & {
-  /**
-   * Any valid render token; it doesn't need to allow a particular payment
-   * method. Safe to pass to the client.
-   */
-  renderToken: string;
-  /**
-   * The external bank account intent to link. Create it on your server
-   * with `POST /external_bank_account_intents`. Changing it remounts.
-   */
-  intentId: string;
-  /**
-   * Mint an embed token for the intent with your server's
-   * `POST /external_bank_account_intents/:id/embed_token`. Called before
-   * each call the iframe makes, because the token expires within seconds.
-   * Keep it stable across renders.
-   */
-  getEmbedToken: (intentId: string) => Promise<string>;
-  appearance?: Appearance;
-  /**
-   * Called with each screen the form shows: `connect`, `code`,
-   * `verifying`, `finish`, `deposits_sent`, `done`, `failed`, `closed`,
-   * or `unavailable`. Use it to hide your submit button once the account
-   * is `done`, or to poll with {@link refreshExternalBankAccount} while
-   * it is `verifying`.
-   */
-  onStateChange?: (event: ExternalBankAccountStateEvent) => void;
-  /**
-   * Called when the form becomes ready to submit, or stops being ready.
-   * `isValid` is true once the account holder is filled in and the bank
-   * step is done: a bank picked in Plaid, or the micro-deposit code
-   * entered.
-   */
-  onValidityChange?: (event: { isValid: boolean }) => void;
-  /** Called when the customer presses Escape in the iframe. */
-  onEscapeKeyPressed?: () => void;
-};
+type AmosExternalBankAccountFormProps = IframePassthroughProps &
+  AmosExternalBankAccountFormOptions;
 
 /**
  * Link a bank account to pay out to. The form shows the intent's status
  * and collects the account holder; Plaid Link opens on your page below
  * it for a first link, or as an overlay to enter a micro-deposit code.
  * Submit with {@link confirmExternalBankAccount}.
+ *
+ * Changing `renderToken` or `intentId` mounts the form again. `onStateChange`
+ * reports each screen (`connect`, `code`, `verifying`, `finish`,
+ * `deposits_sent`, `done`, `failed`, `closed`, `unavailable`); poll with
+ * {@link refreshExternalBankAccount} while it is `verifying`.
  */
 export function AmosExternalBankAccountForm({
   ref,
@@ -597,13 +493,6 @@ export function AmosExternalBankAccountForm({
     },
     remountDeps: [renderToken, intentId],
     iframePassthrough: { style, ...rest },
-    updateDeps: [
-      appearance,
-      getEmbedToken,
-      onStateChange,
-      onValidityChange,
-      onEscapeKeyPressed,
-    ],
   });
 
   return <div ref={containerRef} />;
@@ -649,53 +538,7 @@ export function refreshExternalBankAccount({
   refreshExternalBankAccountIntent({ iframe: resolveIframe(iframeRef) });
 }
 
-type AmosOnboardingProps = IframePassthroughProps & {
-  /**
-   * Any valid render token. It pins the origins allowed to frame the form
-   * and the environment. Safe to pass to the client.
-   */
-  renderToken: string;
-  /**
-   * The legal entity application to fill in. Omit it (or pass `null`) to
-   * start a new one with `createApplication`. Changing it remounts, so keep
-   * it unchanged when `onApplicationCreated` reports the new id.
-   */
-  applicationId?: string | null;
-  /**
-   * Mint an embed token for the application with your server's
-   * `POST /legal_entity_applications/:id/embed_token`. Called before each
-   * call the iframe makes, because the token expires within seconds.
-   */
-  getEmbedToken: (applicationId: string) => Promise<string>;
-  /**
-   * Create the application with your server's
-   * `POST /legal_entity_applications`, using `application` as the body: the
-   * legal name and entity type from the start screen. Required when there
-   * is no `applicationId`. Resolve with the API's 422 `errors` to show them
-   * on the form. `organization` is what the applicant chose there (name,
-   * organization type, category), for your own records; it is `undefined`
-   * for a government agency.
-   */
-  createApplication?: (
-    application: OnboardingCreateApplicationInput,
-    organization?: OnboardingOrganization,
-  ) => Promise<OnboardingCreateApplicationResult>;
-  /** Called once `createApplication` returns an id. Save it to resume later. */
-  onApplicationCreated?: (event: { applicationId: string }) => void;
-  /**
-   * Theme variables, fonts and per-part rules, as on the payment forms,
-   * plus the parts only this form has (`.Button--primary`, `.Notice`,
-   * `.PickerItem`, …). Changing the prop restyles the mounted form.
-   */
-  appearance?: OnboardingAppearance;
-  /**
-   * Called after every read and save with the application's state, the
-   * screen shown, and the requirements still open. Holds no field values.
-   */
-  onStateChange?: (event: OnboardingStateEvent) => void;
-  /** Called when the applicant submits or resubmits. Verify with the webhook. */
-  onSubmitted?: (event: OnboardingSubmittedEvent) => void;
-};
+type AmosOnboardingProps = IframePassthroughProps & AmosOnboardingOptions;
 
 /**
  * The whole legal entity application in one iframe. A new applicant gives
@@ -708,6 +551,10 @@ type AmosOnboardingProps = IframePassthroughProps & {
  * Every field goes from the iframe straight to Amos, including the survey,
  * except a new application's start screen (name and entity type, no tax
  * ID), which `createApplication` sends from your server.
+ *
+ * Changing `renderToken` or `applicationId` mounts the form again, so keep
+ * `applicationId` unchanged when `onApplicationCreated` reports the new id.
+ * Changing `appearance` restyles the mounted form.
  */
 export function AmosOnboarding({
   ref,
@@ -740,14 +587,6 @@ export function AmosOnboarding({
     },
     remountDeps: [renderToken, applicationId],
     iframePassthrough: { style, ...rest },
-    updateDeps: [
-      appearance,
-      getEmbedToken,
-      createApplication,
-      onApplicationCreated,
-      onStateChange,
-      onSubmitted,
-    ],
   });
 
   return <div ref={containerRef} />;
@@ -766,57 +605,18 @@ export function refreshOnboarding({
   refreshOnboardingIframe({ iframe: resolveIframe(iframeRef) });
 }
 
-type AmosGooglePayButtonProps = {
+/** What the wallet buttons take in place of the mount helpers' iframe options. */
+type WalletButtonOwnProps = {
   ref?: ForwardedIframeRef;
-  renderToken: string;
-  /**
-   * Major-currency decimal string shown in the Google Pay sheet
-   * (e.g. `"50.00"` for $50.00). Converted to cents in
-   * `paymentIntentCreateAttributes.amount`.
-   */
-  amount: string;
-  merchantName: string;
-  /**
-   * Painted button height. CSS length (e.g. `"48px"`).
-   * @default "48px"
-   */
-  height?: string;
-  /**
-   * Native Google Pay button attributes and inner style. Omitted
-   * fields keep Amos paint defaults (`buttonType: "plain"`,
-   * `buttonSizeMode: "fill"`). The button fills the iframe — size the
-   * mount slot, not the button.
-   */
-  buttonProps?: GooglePayButtonElementProps;
-  /**
-   * Collect a phone number in the Google Pay sheet.
-   * @default false
-   */
-  phoneRequired?: boolean;
-  /**
-   * Collect a shipping postal address. Name, email, and billing
-   * address are always required.
-   * @default false
-   */
-  shippingAddressRequired?: boolean;
   /** Props applied to the host-page `<iframe>` element. */
   iframeProps?: IframePassthroughProps;
-  /**
-   * Called when the buyer authorizes in the Google Pay sheet. Create a
-   * payment intent on your server, then `await confirmPayment(token)`.
-   * `customerCreateAttributes` is `WalletCustomerCreateAttributes`, not
-   * Amos `CreateCustomerInput`.
-   */
-  onConfirm: ({
-    paymentIntentCreateAttributes,
-    customerCreateAttributes,
-    confirmPayment,
-  }: {
-    paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
-    customerCreateAttributes: WalletCustomerCreateAttributes;
-    confirmPayment: (token: string) => Promise<ConfirmPaymentResult>;
-  }) => Promise<ConfirmPaymentResult>;
 };
+
+type AmosGooglePayButtonProps = Omit<
+  AmosGooglePayButtonOptions,
+  RevealCallbacks | "iframeClassName" | "iframeStyle"
+> &
+  WalletButtonOwnProps;
 
 /**
  * Renders the secure Google Pay iframe button. A button-shaped
@@ -857,15 +657,6 @@ export function AmosGooglePayButton({
     },
     remountDeps: [renderToken],
     iframePassthrough: iframeProps ?? {},
-    updateDeps: [
-      amount,
-      merchantName,
-      height,
-      buttonProps,
-      phoneRequired,
-      shippingAddressRequired,
-      onConfirm,
-    ],
   });
 
   return (
@@ -877,57 +668,11 @@ export function AmosGooglePayButton({
   );
 }
 
-type AmosApplePayButtonProps = {
-  ref?: ForwardedIframeRef;
-  renderToken: string;
-  /**
-   * Major-currency decimal string shown in the Apple Pay sheet
-   * (e.g. `"50.00"` for $50.00). Converted to cents in
-   * `paymentIntentCreateAttributes.amount`.
-   */
-  amount: string;
-  merchantName: string;
-  /**
-   * Painted button height. CSS length (e.g. `"48px"`). Apple ignores
-   * CSS `height`; Amos maps this for you.
-   * @default "48px"
-   */
-  height?: string;
-  /**
-   * Native `<apple-pay-button>` attributes and inner style. Omitted
-   * fields keep Apple's defaults (`black` / `plain` / `en-US`). The
-   * button fills the iframe — size the mount slot, not the button.
-   */
-  buttonProps?: ApplePayButtonElementProps;
-  /**
-   * Collect a phone number in the Apple Pay sheet.
-   * @default false
-   */
-  phoneRequired?: boolean;
-  /**
-   * Collect a shipping postal address. Name, email, and billing
-   * address are always required.
-   * @default false
-   */
-  shippingAddressRequired?: boolean;
-  /** Props applied to the host-page `<iframe>` element. */
-  iframeProps?: IframePassthroughProps;
-  /**
-   * Called when the buyer authorizes in the Apple Pay sheet. Create a
-   * payment intent on your server, then `await confirmPayment(token)`.
-   * `customerCreateAttributes` is `WalletCustomerCreateAttributes`, not
-   * Amos `CreateCustomerInput`.
-   */
-  onConfirm: ({
-    paymentIntentCreateAttributes,
-    customerCreateAttributes,
-    confirmPayment,
-  }: {
-    paymentIntentCreateAttributes: components["schemas"]["CreatePaymentIntentInput"];
-    customerCreateAttributes: WalletCustomerCreateAttributes;
-    confirmPayment: (token: string) => Promise<ConfirmPaymentResult>;
-  }) => Promise<ConfirmPaymentResult>;
-};
+type AmosApplePayButtonProps = Omit<
+  AmosApplePayButtonOptions,
+  RevealCallbacks | "iframeClassName" | "iframeStyle"
+> &
+  WalletButtonOwnProps;
 
 /**
  * Renders the secure Apple Pay iframe button. A button-shaped
@@ -968,15 +713,6 @@ export function AmosApplePayButton({
     },
     remountDeps: [renderToken],
     iframePassthrough: iframeProps ?? {},
-    updateDeps: [
-      amount,
-      merchantName,
-      height,
-      buttonProps,
-      phoneRequired,
-      shippingAddressRequired,
-      onConfirm,
-    ],
   });
 
   return (

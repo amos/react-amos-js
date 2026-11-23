@@ -102,82 +102,24 @@ Card and bank components accept an optional `appearance` prop that controls the 
 />
 ```
 
-`themeVariables` uses a **replace** model: each update that includes `themeVariables` sets the full override set. Only the variables you list are overridden; unlisted variables revert to iframe defaults. Omit `themeVariables` to leave existing overrides unchanged.
+`appearance` is the same object the JavaScript SDK takes (the `Appearance` type, re-exported here), so its reference lives in one place: the [`@amos.com/amos-js` README](https://www.npmjs.com/package/@amos.com/amos-js#appearance). It covers:
 
-`fonts` uses the same replace model: omit `fonts` to keep the previous set; pass a new array to replace it (`[]` clears the webfont). The iframe does not wait for webfonts before revealing — custom faces use `font-display: swap`.
+- [Fonts](https://www.npmjs.com/package/@amos.com/amos-js#fonts): `cssSrc` and custom `@font-face` sources, and the Inter default.
+- [Rules](https://www.npmjs.com/package/@amos.com/amos-js#rules): the selectors (`.Input`, `.Label`, `.Error`, …) and the allowed properties.
+- [Label placement](https://www.npmjs.com/package/@amos.com/amos-js#label-placement): `above`, `floating` or `placeholder`.
+- [Available theme variables](https://www.npmjs.com/package/@amos.com/amos-js#available-theme-variables): every variable and its default.
+- [Application form](https://www.npmjs.com/package/@amos.com/amos-js#application-form): the extra selectors and variables `AmosOnboarding` takes.
 
-### Fonts
+What to know when passing it as a prop:
 
-When you omit `fonts` and `--font-family`, the SDK sends Google Fonts Inter on the first `UPDATE_APPEARANCE` (same stylesheet the embed used to load globally) and sets `--font-family` to `Inter, ui-sans-serif, system-ui, sans-serif`. That is what lets js.amos.com drop its own Inter `<link>` once every client is on this SDK.
-
-Pass Stripe-style font sources on `appearance.fonts` to replace that default. Pair them with `--font-family` so the iframe uses the loaded face (see the example above). A custom `@font-face` source looks like `{ family: "MyFont", src: 'url(https://cdn.example.com/my.woff2)', display: "swap" }`.
-
-Pass `fonts: []` to skip the webfont. If you also omit `--font-family` on that payload, the SDK uses `ui-sans-serif, system-ui, sans-serif` instead of Inter.
-
-- **`cssSrc`** — an `https:` stylesheet URL that declares `@font-face` (Google Fonts CSS, a self-hosted CSS file). The iframe injects `<link rel="stylesheet">`; it does not fetch and inline the CSS.
-- **Custom source** — `family` plus a CSS `src` list of `url("https://…")` / `url(https://…)` and optional `format(…)`. Optional `display` (default `"swap"`), `style`, `weight`, and `unicodeRange`.
-
-### Rules
-
-Per-part CSS, keyed by Stripe-style class names. The iframe maps these onto its own slots; you cannot target the iframe DOM from the host page. Pair `fontFamily` with `appearance.fonts` so the face is loaded.
-
-```tsx
-appearance={{
-  fonts: [
-    { cssSrc: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" },
-    { cssSrc: "https://fonts.googleapis.com/css2?family=Source+Serif+4&display=swap" },
-  ],
-  themeVariables: {
-    "--font-family": "Inter, ui-sans-serif, system-ui, sans-serif",
-  },
-  rules: {
-    ".Label": { fontFamily: "Source Serif 4, ui-serif, serif" },
-    ".Input": { fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" },
-    ".Input--invalid": { boxShadow: "0 0 0 2px oklch(0.55 0.245 27.325)" },
-  },
-}}
-```
-
-`rules` uses the same **replace** model as `themeVariables` and `fonts`: omit `rules` to keep the previous set; pass a new object to replace it (`{}` clears). Unknown class names and properties are ignored.
-
-Rules override `themeVariables` for the properties they set (Stripe). `--input-height` / `--floating-input-height` are a **minimum**; `.Input` `padding`, `fontSize`, and `lineHeight` can grow the field. Floated input text padding is `--floating-value-padding-top` and `--floating-value-padding-bottom`. Rule values may reference allowlisted tokens as `var(--primary)` (no fallback argument).
-
-The host skeleton (shown until `UPDATED_APPEARANCE`, or for 1.5s after the postMessage handshake starts (`IFRAME_READY`) if appearance never acks) copies `themeVariables` and resting **`.Input` / `.Label`** declarations (the same allowlisted properties as iframe rules). Its background is `--background`, so it covers the iframe. The iframe stays at opacity 1 with an explicit pixel width and height underneath, and is `inert` until reveal, so WebKit lays it out and still runs iframe JS. It does not inject webfonts: it uses `--font-family` / `fontFamily` when that face is already on the host page, and falls back to `ui-sans-serif, system-ui, sans-serif`. Hover, invalid, placeholder, dropdown, and radio rules have no skeleton equivalent. Floating labels sit inside the control, so `.Label` / `.Label--floating` do not change skeleton height.
-
-| Selector | Targets |
-| --- | --- |
-| `.Input` | Text fields, country select, state trigger |
-| `.Input:hover`, `.Input:focus`, `.Input:disabled` | Those controls in the given state |
-| `.Input--invalid` | Invalid text fields / selects |
-| `.Input::placeholder` | Input placeholders |
-| `.Label` | All labels (above, floating, radio option text, group titles) |
-| `.Label--floating` | Extra styles on floating labels (overrides `.Label`) |
-| `.Error` | Field-level error text |
-| `.Dropdown` | State list panel |
-| `.DropdownItem` | State list rows |
-| `.DropdownItem--highlight` | Highlighted state row |
-| `.RadioIcon` | Bank radio circle |
-| `.RadioIcon--checked` | Checked radio circle |
-| `.RadioIconInner` | Radio filled dot |
-
-Allowed declaration keys (camelCase): `fontFamily`, `fontSize`, `fontWeight`, `fontStyle`, `lineHeight`, `letterSpacing`, `textTransform`, `color`, `backgroundColor`, `border`, `borderColor`, `borderWidth`, `borderStyle`, `borderRadius`, `boxShadow`, `outline`, `padding`, `margin`, `opacity`. Values cannot include `url()`, `@font-face`, `<`, `>`, `\`, or `var()` except `var(--token)` for an allowlisted theme variable (`--primary`, `--input-height`, …).
-
-### Label placement
-
-Set `labels` to control how field labels are rendered in card and bank account forms:
-
-| Value             | Behavior                                                  |
-| ----------------- | --------------------------------------------------------- |
-| `above` (default) | Label text above each input                               |
-| `floating`        | Label inside the control; moves up when focused or filled |
-| `placeholder`     | No visible label; placeholder and `aria-label` only       |
-
-Radio groups (e.g. account type) always use an above-style group label regardless of this setting.
-
+- `themeVariables`, `fonts` and `rules` each use a **replace** model: a new value replaces the whole set, and leaving a key out keeps the previous one.
+- Changing the prop restyles the mounted form; it does not remount it.
+- Each component passes on only the props whose identity changed since the last render, so a new callback does not re-send `appearance` or `defaultValues`. An inline `appearance={{ … }}` is a new object on every render; keep it in a constant or `useMemo` to avoid re-sending it.
+- A `cssSrc` stylesheet is fetched by the iframe, which uses only its `@font-face` rules; `@import` and every other rule are ignored. The stylesheet's host must send `Access-Control-Allow-Origin` (Google Fonts does); without it the form keeps its fallback font.
 
 ### Application form
 
-`<AmosOnboarding>` takes the same `appearance` (type `OnboardingAppearance`), so one object can style your payment forms and the application form. `themeVariables`, `fonts` and `rules` work as above, and changing the prop restyles the mounted form. Its labels are always above the field, so there is no `labels`, and the floating-label, `--field-gap`, `--control-gap` and `--radio-size` variables do nothing there.
+`<AmosOnboarding>` takes the same `appearance` (type `OnboardingAppearance`), so one object can style your payment forms and the application form. Its labels are always above the field, so there is no `labels`.
 
 ```tsx
 <AmosOnboarding
@@ -199,79 +141,6 @@ Radio groups (e.g. account type) always use an above-style group label regardles
   }}
 />
 ```
-
-Two more theme variables color its statuses: `--success` (default `oklch(0.55 0.14 155)`) for completed, verified and approved, and `--warning` (default `oklch(0.7 0.15 70)`) for what needs attention. Rule values may use them as `var(--success)` / `var(--warning)`.
-
-`rules` accepts the selectors above (`.Input`, `.Label`, `.Error`, …; it has no dropdown or radio parts) and these for the parts only this form has:
-
-| Selector | Targets |
-| --- | --- |
-| `.Heading` | Screen titles |
-| `.SectionTitle` | Titles of groups of fields and of cards |
-| `.Hint` | Help text under a field |
-| `.Button` | Every button except text links |
-| `.Button:hover`, `.Button:focus`, `.Button:disabled` | Those buttons in the given state |
-| `.Button--primary`, `.Button--primary:hover` | The main action of a screen (Save, Continue, Submit) |
-| `.Button--secondary`, `.Button--secondary:hover` | Outlined buttons |
-| `.Button--ghost`, `.Button--ghost:hover` | Borderless buttons (Back, Cancel, Remove) |
-| `.Link`, `.Link:hover` | Buttons drawn as text links (Change, Replace, Fix) |
-| `.Block` | Bordered containers: the task list, cards, summaries, the upload area |
-| `.PickerItem`, `.PickerItem:hover` | One option of a pick-one group of cards |
-| `.PickerItem--selected` | The chosen option |
-| `.Checkbox`, `.Checkbox--checked` | The box of a checkbox |
-| `.CheckboxLabel` | The text next to a checkbox |
-| `.Notice` | Every notice, whatever its tone |
-| `.Notice--error`, `.Notice--warning`, `.Notice--success` | Notices of that tone |
-| `.Badge` | Status pills (Completed, Verified, Submitted, …) |
-
-A variant or state (`.Button--primary`, `.Button:hover`) overrides its part (`.Button`) whichever comes first. Between two that both apply, such as `.Button--primary` and `.Button:hover`, the later key wins; `.Button--primary:hover` beats both. These selectors are ignored by the payment forms, and need an embed that knows them: until then the form keeps its defaults for those parts.
-
-### Available theme variables
-
-| Variable                           | Purpose                                                  | Default                         |
-| ---------------------------------- | -------------------------------------------------------- | ------------------------------- |
-| `--background`                     | Page body and base surface color                         | `oklch(1 0 0)`                  |
-| `--foreground`                     | Default text color                                       | `oklch(0.145 0 0)`              |
-| `--primary`                        | Button fill and input text-selection highlight           | `oklch(0.205 0 0)`              |
-| `--primary-foreground`             | Text on primary-colored surfaces                         | `oklch(0.985 0 0)`              |
-| `--secondary`                      | Secondary button fill                                    | `oklch(0.97 0 0)`               |
-| `--secondary-foreground`           | Text on secondary-colored surfaces                       | `oklch(0.205 0 0)`              |
-| `--muted`                          | Muted surface color                                      | `oklch(0.97 0 0)`               |
-| `--muted-foreground`               | Placeholder text, helper labels, muted icons             | `oklch(0.556 0 0)`              |
-| `--accent`                         | Hover/focus highlight for interactive items              | `oklch(0.97 0 0)`               |
-| `--accent-foreground`              | Text on accent-highlighted items                         | `oklch(0.205 0 0)`              |
-| `--destructive`                    | Error/invalid state borders, icons, and field error text | `oklch(0.577 0.245 27.325)`     |
-| `--destructive-foreground`         | Text on destructive-colored surfaces                     | `oklch(0.45 0.24 27.325)`       |
-| `--border`                         | General border color                                     | `oklch(0.922 0 0)`              |
-| `--popover`                        | Dropdown / popover panel background                      | `oklch(1 0 0)`                  |
-| `--popover-foreground`             | Dropdown / popover panel text color                      | `oklch(0.145 0 0)`              |
-| `--input`                          | Input field border color                                 | `oklch(0.922 0 0)`              |
-| `--input-background`               | Input field background fill                              | `var(--background)`             |
-| `--input-height`                   | Height of text inputs and form controls                  | `2.25rem`                       |
-| `--input-font-size`                | Font size of text inputs and dropdown fields             | `0.875rem`                      |
-| `--input-font-weight`              | Font weight of typed input values                        | `400`                           |
-| `--input-padding`                  | Horizontal padding inside inputs                         | `0.75rem`                       |
-| `--input-border-width`             | Input field border width                                 | `1px`                           |
-| `--input-shadow`                   | Input field box shadow                                   | `0 1px 2px 0 rgb(0 0 0 / 0.05)` |
-| `--floating-input-height`          | Height of inputs when labels are floating                | `3.25rem`                       |
-| `--floating-label-font-size`       | Font size of floating labels when focused or filled      | `0.75rem`                       |
-| `--floating-label-empty-font-size` | Font size of floating labels when empty (unfocused)      | `var(--input-font-size)`        |
-| `--floating-label-font-weight`     | Font weight of floating labels                           | `500`                           |
-| `--floating-label-color`           | Color of floating labels when empty (unfocused)          | `var(--muted-foreground)`       |
-| `--floating-label-floated-color`   | Color of floating labels when focused or filled          | `var(--floating-label-color)`   |
-| `--floating-label-offset`          | Top offset of the shrunk floating label                  | `0.625rem`                      |
-| `--floating-value-padding-top`     | Top padding of the typed value when the label is floated | `calc(var(--floating-label-offset) + var(--floating-label-font-size) + 0.125rem)` |
-| `--floating-value-padding-bottom`  | Bottom padding of the typed value when the label is floated | `var(--floating-label-offset)` |
-| `--label-font-size`                | Font size of above-style field labels                    | `0.875rem`                      |
-| `--label-font-weight`              | Font weight of above-style field labels                  | `500`                           |
-| `--field-gap`                      | Vertical gap between stacked form fields                 | `1rem`                          |
-| `--control-gap`                    | Horizontal gap between side-by-side controls             | `0.5rem`                        |
-| `--error-font-size`                | Font size of field-level error messages                  | `0.875rem`                      |
-| `--radio-size`                     | Size of radio buttons on the bank account form           | `1rem`                          |
-| `--ring`                           | Focus ring and outline color (inputs)                    | `oklch(0.708 0 0)`              |
-| `--ring-width`                     | Focus ring width                                         | `3px`                           |
-| `--radius`                         | Base border-radius (derived into sm/md/lg/xl)            | `0.625rem`                      |
-| `--font-family`                    | Font stack for the iframe UI                             | `Inter, ui-sans-serif, system-ui, sans-serif` |
 
 ## Examples
 
